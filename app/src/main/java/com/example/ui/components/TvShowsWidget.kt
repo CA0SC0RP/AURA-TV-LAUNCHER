@@ -91,7 +91,7 @@ fun TvShowsWidget(
   Row(
     modifier = modifier
       .fillMaxWidth()
-      .padding(horizontal = 6.dp, vertical = 2.dp),
+      .padding(horizontal = 8.dp, vertical = 6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
     LazyRow(
@@ -105,8 +105,8 @@ fun TvShowsWidget(
         TvCard(
           onClick = { showCalendarDialog = true },
           modifier = Modifier
-            .height(44.dp)
-            .width(115.dp),
+            .height(82.dp)
+            .width(150.dp),
           shape = RoundedCornerShape(10.dp),
           backgroundColor = Color.Black.copy(alpha = 0.55f),
           focusedBorderColor = NeonCyan,
@@ -123,13 +123,13 @@ fun TvShowsWidget(
               imageVector = Icons.Default.CalendarMonth,
               contentDescription = "Calendario de Series",
               tint = NeonCyan,
-              modifier = Modifier.size(16.dp)
+              modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
               text = "Calendario",
               color = NeonCyan,
-              fontSize = 11.sp,
+              fontSize = 14.sp,
               fontWeight = FontWeight.Bold
             )
           }
@@ -153,8 +153,8 @@ fun TvShowsWidget(
         TvCard(
           onClick = { showAddDialog = true },
           modifier = Modifier
-            .height(44.dp)
-            .width(92.dp),
+            .height(82.dp)
+            .width(130.dp),
           shape = RoundedCornerShape(10.dp),
           backgroundColor = Color.Black.copy(alpha = 0.45f),
           focusedBorderColor = NeonBlue,
@@ -171,13 +171,13 @@ fun TvShowsWidget(
               imageVector = Icons.Default.Add,
               contentDescription = "Agregar Serie",
               tint = NeonBlue,
-              modifier = Modifier.size(16.dp)
+              modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
               text = "+ Serie",
               color = NeonBlue,
-              fontSize = 11.sp,
+              fontSize = 14.sp,
               fontWeight = FontWeight.Bold
             )
           }
@@ -236,8 +236,8 @@ fun CompactTvSeriesCard(
   TvCard(
     onClick = onClick,
     modifier = Modifier
-      .height(48.dp)
-      .width(215.dp),
+      .height(82.dp)
+      .width(260.dp),
     shape = RoundedCornerShape(10.dp),
     backgroundColor = Color.Black.copy(alpha = 0.55f),
     focusedBorderColor = NeonPurple,
@@ -246,13 +246,13 @@ fun CompactTvSeriesCard(
     Row(
       modifier = Modifier
         .fillMaxSize()
-        .padding(horizontal = 6.dp, vertical = 4.dp),
+        .padding(horizontal = 10.dp, vertical = 6.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
       // Mini Poster
       Box(
         modifier = Modifier
-          .size(30.dp, 40.dp)
+          .size(52.dp, 70.dp)
           .clip(RoundedCornerShape(6.dp))
           .background(Color(0xFF1E293B)),
         contentAlignment = Alignment.Center
@@ -269,7 +269,7 @@ fun CompactTvSeriesCard(
         }
       }
 
-      Spacer(modifier = Modifier.width(8.dp))
+      Spacer(modifier = Modifier.width(12.dp))
 
       // Series Info with ample horizontal room
       Column(
@@ -279,7 +279,7 @@ fun CompactTvSeriesCard(
         Text(
           text = series.name,
           color = Color.White,
-          fontSize = 12.sp,
+          fontSize = 15.sp,
           fontWeight = FontWeight.Bold,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis
@@ -287,34 +287,14 @@ fun CompactTvSeriesCard(
 
         Spacer(modifier = Modifier.height(2.dp))
 
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-          // Season/Episode pill
-          Box(
-            modifier = Modifier
-              .clip(RoundedCornerShape(4.dp))
-              .background(NeonBlue.copy(alpha = 0.25f))
-              .padding(horizontal = 5.dp, vertical = 1.dp)
-          ) {
-            Text(
-              text = "T${series.currentSeason} E${series.currentEpisode}",
-              color = NeonBlue,
-              fontSize = 10.sp,
-              fontWeight = FontWeight.Bold
-            )
-          }
-
-          // Next air date or status (won't get cut off now)
-          Text(
-            text = series.nextAirDate ?: series.status,
-            color = NeonAmber,
-            fontSize = 10.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-          )
-        }
+        Text(
+          text = "Próximo episodio: ${series.nextAirDate ?: "Fecha por confirmar"}",
+          color = NeonAmber,
+          fontSize = 12.sp,
+          fontWeight = FontWeight.SemiBold,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis
+        )
       }
     }
   }
