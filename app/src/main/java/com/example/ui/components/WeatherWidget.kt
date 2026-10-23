@@ -665,7 +665,7 @@ fun LocationInputDialog(
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-          text = "Selecciona una ciudad o escribe país / código postal:",
+          text = "Escribe una ciudad o país y código postal (ej. México, 06100):",
           color = TvTextSecondary,
           fontSize = 11.sp
         )
@@ -703,7 +703,7 @@ fun LocationInputDialog(
         OutlinedTextField(
           value = input,
           onValueChange = { input = it },
-          placeholder = { Text("País, Ciudad o Código Postal", fontSize = 11.sp) },
+          placeholder = { Text("País y código postal o ciudad", fontSize = 11.sp) },
           modifier = Modifier.fillMaxWidth().height(46.dp),
           singleLine = true,
           colors = OutlinedTextFieldDefaults.colors(
@@ -735,5 +735,61 @@ fun LocationInputDialog(
         }
       }
     }
+  }
+}
+
+
+@Composable
+fun WeatherSetupWidget(
+  onLocationChange: (String) -> Unit,
+  modifier: Modifier = Modifier
+) {
+  var showLocationDialog by remember { mutableStateOf(false) }
+
+  TvCard(
+    onClick = { showLocationDialog = true },
+    modifier = modifier,
+    backgroundColor = TvSurface.copy(alpha = 0.82f),
+    focusedBorderColor = NeonBlue,
+    focusedScale = 1.03f
+  ) {
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(12.dp),
+      verticalArrangement = Arrangement.Center,
+      horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+      Icon(
+        imageVector = Icons.Default.EditLocationAlt,
+        contentDescription = "Configurar ubicación del clima",
+        tint = NeonBlue,
+        modifier = Modifier.size(24.dp)
+      )
+      Spacer(modifier = Modifier.height(8.dp))
+      Text(
+        text = "Configurar clima",
+        color = Color.White,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold
+      )
+      Spacer(modifier = Modifier.height(4.dp))
+      Text(
+        text = "País y código postal",
+        color = TvTextSecondary,
+        fontSize = 10.sp
+      )
+    }
+  }
+
+  if (showLocationDialog) {
+    LocationInputDialog(
+      currentLocation = "",
+      onDismiss = { showLocationDialog = false },
+      onConfirm = { location ->
+        onLocationChange(location)
+        showLocationDialog = false
+      }
+    )
   }
 }
