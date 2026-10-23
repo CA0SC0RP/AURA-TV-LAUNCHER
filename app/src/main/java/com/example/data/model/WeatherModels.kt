@@ -29,7 +29,8 @@ data class DailyWeather(
   val minTemp: Double,
   val maxTemp: Double,
   val weatherCode: Int,
-  val condition: String
+  val condition: String,
+  val precipitationProbabilityPercent: Int? = null
 )
 
 data class MoonPhaseInfo(
