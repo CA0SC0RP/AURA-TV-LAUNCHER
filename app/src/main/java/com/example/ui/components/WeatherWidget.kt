@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -339,6 +340,7 @@ fun WeatherWidget(
 
   // Expanded Weather Window
   if (showExpandedDialog) {
+    BackHandler(enabled = true) { showExpandedDialog = false }
     ExpandedWeatherDialog(
       weather = weather,
       onDismiss = { showExpandedDialog = false },
