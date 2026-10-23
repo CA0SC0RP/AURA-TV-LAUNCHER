@@ -1,0 +1,62 @@
+
+name: AURA TV - Generar APK de prueba
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compilar AURA TV Launcher
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar SDK de Android
+        run: |
+          sdkmanager --install "platforms;android-36.1"
+          sdkmanager --licenses
+
+      - name: Preparar firma de prueba
+        run: |
+          keytool -genkeypair \
+            -keystore debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Compilar APK
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Asignar nombre a la prueba
+        run: |
+          mkdir -p salida
+          cp app/build/outputs/apk/debug/app-debug.apk \
+            "salida/AURA-TV-Prueba-${GITHUB_RUN_NUMBER}.apk"
+
+      - name: Publicar APK para descargar
+        uses: actions/upload-artifact@v4
+        with:
+          name: AURA-TV-Prueba-${{ github.run_number }}
+          path: salida/*.apk
+          if-no-files-found: error
+          retention-days: 30
