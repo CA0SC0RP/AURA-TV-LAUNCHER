@@ -77,7 +77,11 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
 
       // 2. Apps
       val pinnedSet = prefs.getPinnedApps()
-      val installed = appManagerRepo.getInstalledApps(pinnedSet)
+      val discoveredApps = appManagerRepo.getInstalledApps(pinnedSet)
+      // Keep only favorites that are actually installed and normalize the dock to six items.
+      val pinnedPackages = discoveredApps.filter { it.isPinned }.take(6).map { it.packageName }.toSet()
+      prefs.setPinnedApps(pinnedPackages)
+      val installed = discoveredApps.map { it.copy(isPinned = it.packageName in pinnedPackages) }
       val pinned = installed.filter { it.isPinned }
 
       // 3. Sports & Games
@@ -179,7 +183,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
   fun togglePinApp(packageName: String, shouldPin: Boolean) {
     val currentPinned = prefs.getPinnedApps().toMutableSet()
     if (shouldPin) {
-      if (packageName !in currentPinned && currentPinned.size >= 6) return
+      if (packageName !in currentPinned && _uiState.value.allApps.count { it.isPinned } >= 6) return
       currentPinned.add(packageName)
     } else {
       currentPinned.remove(packageName)
