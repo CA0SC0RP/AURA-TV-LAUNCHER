@@ -27,8 +27,7 @@ class LauncherPreferences(context: Context) {
       "com.amazon.amazonvideo.livingroom",
       "com.disney.disneyplus",
       "com.spotify.tv.android",
-      "com.android.vending",
-      "com.android.settings"
+      "com.android.vending"
     )
   }
 
