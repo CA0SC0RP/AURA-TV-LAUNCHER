@@ -110,7 +110,7 @@ fun SportsWidget(
             ) {
               Text(event.sport.uppercase(), color = NeonGreen, fontSize = 8.sp, fontWeight = FontWeight.Bold)
               Text(
-                text = if (event.sport == "Fórmula 1") event.teamHome else "\${event.teamHome} vs \${event.teamAway}",
+                text = if (event.sport == "Fórmula 1") event.teamHome else "${event.teamHome} vs ${event.teamAway}",
                 color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis
               )
@@ -190,7 +190,7 @@ private fun SportsDetailRow(event: SportsEvent) {
       Text(event.status, color = if (event.isLive) Color(0xFFFF6565) else NeonAmber, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
     Text(
-      if (event.sport == "Fórmula 1") event.teamHome else "\${event.teamHome} vs \${event.teamAway}",
+      if (event.sport == "Fórmula 1") event.teamHome else "${event.teamHome} vs ${event.teamAway}",
       color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold
     )
     Text(event.airDateTime, color = NeonAmber, fontSize = 12.sp)
