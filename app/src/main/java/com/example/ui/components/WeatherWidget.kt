@@ -66,6 +66,7 @@ fun WeatherWidget(
   weather: WeatherData,
   onLocationChange: (String) -> Unit,
   onToggleUnit: () -> Unit,
+  savedLocation: String = "",
   modifier: Modifier = Modifier
 ) {
   var isHourlyView by remember { mutableStateOf(false) } // false = Día a día, true = Por hora
@@ -352,7 +353,7 @@ fun WeatherWidget(
   // Location Search Dialog
   if (showLocationDialog) {
     LocationInputDialog(
-      currentLocation = weather.cityName,
+      currentLocation = savedLocation,
       onDismiss = { showLocationDialog = false },
       onConfirm = { newLoc ->
         onLocationChange(newLoc)
