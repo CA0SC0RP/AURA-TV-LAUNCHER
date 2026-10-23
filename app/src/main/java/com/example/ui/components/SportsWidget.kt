@@ -106,7 +106,7 @@ fun SportsWidget(
 
       if (visibleEvents.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-          Text("Consultando calendario…\nPulsa para ver detalles", color = TvTextSecondary, fontSize = 10.sp)
+          Text("Sin eventos disponibles\nPulsa para consultar la agenda", color = TvTextSecondary, fontSize = 10.sp)
         }
       } else {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
