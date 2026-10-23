@@ -38,7 +38,7 @@ class SportsRepository {
       runCatching { parseEvents(source.sport, requestJson(source.url)) }.getOrDefault(emptyList())
     }
       .distinctBy { it.id }
-      .sortedBy { parseSortDate(it.id.substringAfter('|', "")) }
+      .sortedBy { parseSortDate(it.id.substringAfter('|', "").substringBefore('|')) }
       .take(60)
   }
 
@@ -81,7 +81,8 @@ class SportsRepository {
       val venueObj = competition?.optJSONObject("venue")
       val venueName = venueObj?.optString("fullName")?.takeIf { it.isNotBlank() }
       val city = venueObj?.optJSONObject("address")?.optString("city")?.takeIf { it.isNotBlank() }
-      val venue = listOfNotNull(venueName, city).distinct().joinToString(", ").ifBlank { null }
+      val venueText = listOfNotNull(venueName, city).distinct().joinToString(", ")
+      val venue = venueText.takeIf { it.isNotBlank() }
       val statusType = competition?.optJSONObject("status")?.optJSONObject("type")
         ?: event.optJSONObject("status")?.optJSONObject("type")
       val detail = statusType?.optString("shortDetail")?.takeIf { it.isNotBlank() }
@@ -135,7 +136,7 @@ class SportsRepository {
     }
     val parsed = parser.parse(raw) ?: return null
     SimpleDateFormat("EEE d MMM · HH:mm", Locale("es", "MX")).format(parsed)
-      .replaceFirstChar { it.uppercase(Locale("es", "MX")) }
+      .replaceFirstChar { it.uppercase() }
   }.getOrNull()
 
   private fun parseSortDate(raw: String): Long = runCatching {
