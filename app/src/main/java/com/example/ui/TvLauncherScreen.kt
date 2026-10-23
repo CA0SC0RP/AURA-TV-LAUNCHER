@@ -78,20 +78,6 @@ fun TvLauncherScreen(
   val context = LocalContext.current
 
   var showWallpaperModal by remember { mutableStateOf(false) }
-  var currentTimeStr by remember { mutableStateOf("") }
-  var currentDateStr by remember { mutableStateOf("") }
-
-  // Update TV clock every 5 seconds
-  LaunchedEffect(Unit) {
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val dateFormat = SimpleDateFormat("EEEE, d 'de' MMMM", Locale("es", "ES"))
-    while (true) {
-      val now = Date()
-      currentTimeStr = timeFormat.format(now)
-      currentDateStr = dateFormat.format(now).replaceFirstChar { it.uppercase() }
-      delay(5000)
-    }
-  }
 
   Box(modifier = modifier.fillMaxSize()) {
     // 1. 4K Wallpaper Background
@@ -147,10 +133,8 @@ fun TvLauncherScreen(
             .background(Color.Black.copy(alpha = 0.35f))
             .padding(vertical = 4.dp)
         ) {
-          // Line 1: Status Bar
+          // Line 1: Status Bar (clock/date omitted; weather widget already provides them)
           TopTvStatusBar(
-            timeStr = currentTimeStr,
-            dateStr = currentDateStr,
             onOpenWallpaper = { showWallpaperModal = true },
             onOpenSettings = {
               try {
@@ -390,8 +374,6 @@ fun TvLauncherScreen(
 
 @Composable
 fun TopTvStatusBar(
-  timeStr: String,
-  dateStr: String,
   onOpenWallpaper: () -> Unit,
   onOpenSettings: () -> Unit,
   onRefresh: () -> Unit
@@ -431,29 +413,6 @@ fun TopTvStatusBar(
       ) {
         Text(text = "4K HDR", color = NeonCyan, fontSize = 8.sp, fontWeight = FontWeight.Bold)
       }
-    }
-
-    // Center: Live Clock & Date
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      Text(
-        text = timeStr,
-        color = Color.White,
-        fontSize = 15.sp,
-        fontWeight = FontWeight.Bold
-      )
-      Spacer(modifier = Modifier.width(8.dp))
-      Text(
-        text = "•",
-        color = TvTextSecondary,
-        fontSize = 11.sp
-      )
-      Spacer(modifier = Modifier.width(8.dp))
-      Text(
-        text = dateStr,
-        color = TvTextSecondary,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Medium
-      )
     }
 
     // Right: Action buttons
