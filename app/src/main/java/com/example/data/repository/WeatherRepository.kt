@@ -20,58 +20,27 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
   .readTimeout(8, TimeUnit.SECONDS)
   .build()) {
 
-  private val fallbackWeather = WeatherData(
-    cityName = "Madrid",
-    country = "España",
-    currentTemp = 22.0,
-    tempUnit = "°C",
-    conditionDescription = "Despejado",
-    weatherCode = 0,
-    highTemp = 25.0,
-    lowTemp = 14.0,
-    humidity = 45,
-    windSpeedKmH = 12.5,
-    uvIndex = 5.2,
-    hourlyForecast = listOf(
-      HourlyWeather("Ahora", 22.0, 0, isNow = true),
-      HourlyWeather("14:00", 24.0, 1),
-      HourlyWeather("16:00", 25.0, 1),
-      HourlyWeather("18:00", 23.0, 2),
-      HourlyWeather("20:00", 20.0, 2),
-      HourlyWeather("22:00", 17.0, 0),
-      HourlyWeather("00:00", 15.0, 0)
-    ),
-    dailyForecast = listOf(
-      DailyWeather("Hoy", "23 Oct", 14.0, 25.0, 0, "Despejado"),
-      DailyWeather("Vie", "24 Oct", 13.0, 24.0, 1, "Soleado"),
-      DailyWeather("Sáb", "25 Oct", 15.0, 26.0, 2, "Parcialmente nublado"),
-      DailyWeather("Dom", "26 Oct", 14.0, 22.0, 61, "Lluvia ligera"),
-      DailyWeather("Lun", "27 Oct", 12.0, 20.0, 3, "Nublado"),
-      DailyWeather("Mar", "28 Oct", 13.0, 23.0, 1, "Despejado"),
-      DailyWeather("Mié", "29 Oct", 15.0, 25.0, 0, "Soleado")
-    )
-  )
+  fun getFallback(): WeatherData? = null
 
-  fun getFallback(): WeatherData = fallbackWeather
-
-  suspend fun fetchWeather(queryLocation: String, isFahrenheit: Boolean = false): WeatherData = withContext(Dispatchers.IO) {
+  suspend fun fetchWeather(queryLocation: String, isFahrenheit: Boolean = false): WeatherData? = withContext(Dispatchers.IO) {
     try {
       // 1. Geocode location (city, postal code, or country)
       val cleanQuery = queryLocation.trim()
       val geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=${java.net.URLEncoder.encode(cleanQuery, "UTF-8")}&count=1&language=es&format=json"
       val geoReq = Request.Builder().url(geoUrl).build()
       val geoResp = client.newCall(geoReq).execute()
-      val geoBody = geoResp.body?.string() ?: return@withContext fallbackWeather
+      val geoBody = geoResp.body?.string() ?: return@withContext null
 
       val geoJson = JSONObject(geoBody)
       val results = geoJson.optJSONArray("results")
       if (results == null || results.length() == 0) {
-        return@withContext fallbackWeather.copy(cityName = queryLocation)
+        return@withContext null
       }
 
       val firstResult = results.getJSONObject(0)
-      val lat = firstResult.optDouble("latitude", 40.4168)
-      val lon = firstResult.optDouble("longitude", -3.7038)
+      if (!firstResult.has("latitude") || !firstResult.has("longitude")) return@withContext null
+      val lat = firstResult.optDouble("latitude")
+      val lon = firstResult.optDouble("longitude")
       val cityName = firstResult.optString("name", queryLocation)
       val country = firstResult.optString("country", "")
 
@@ -180,11 +149,11 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
         humidity = humidity,
         windSpeedKmH = (windSpeed * 10).roundToInt() / 10.0,
         uvIndex = uvToday,
-        hourlyForecast = if (hourlyList.isNotEmpty()) hourlyList else fallbackWeather.hourlyForecast,
-        dailyForecast = if (dailyList.isNotEmpty()) dailyList else fallbackWeather.dailyForecast
+        hourlyForecast = hourlyList,
+        dailyForecast = dailyList
       )
     } catch (e: Exception) {
-      fallbackWeather.copy(cityName = queryLocation)
+      null
     }
   }
 
