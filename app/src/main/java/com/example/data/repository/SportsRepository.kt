@@ -129,22 +129,32 @@ class SportsRepository {
       timeZone = TimeZone.getTimeZone("UTC")
     }.format(date)
 
-  private fun formatDate(raw: String): String? = runCatching {
-    val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'", Locale.US).apply {
-      timeZone = TimeZone.getTimeZone("UTC")
-      isLenient = true
+  private fun parseEventDate(raw: String): Date? {
+    val patterns = listOf(
+      "yyyy-MM-dd'T'HH:mm:ssX",
+      "yyyy-MM-dd'T'HH:mmX",
+      "yyyy-MM-dd'T'HH:mm:ss'Z'",
+      "yyyy-MM-dd'T'HH:mm'Z'"
+    )
+    for (pattern in patterns) {
+      val parsed = runCatching {
+        SimpleDateFormat(pattern, Locale.US).apply {
+          timeZone = TimeZone.getTimeZone("UTC")
+          isLenient = true
+        }.parse(raw)
+      }.getOrNull()
+      if (parsed != null) return parsed
     }
-    val parsed = parser.parse(raw) ?: return null
-    SimpleDateFormat("EEE d MMM · HH:mm", Locale("es", "MX")).format(parsed)
-      .replaceFirstChar { it.uppercase() }
-  }.getOrNull()
+    return null
+  }
 
-  private fun parseSortDate(raw: String): Long = runCatching {
-    val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'", Locale.US).apply {
-      timeZone = TimeZone.getTimeZone("UTC")
-    }
-    parser.parse(raw)?.time ?: Long.MAX_VALUE
-  }.getOrDefault(Long.MAX_VALUE)
+  private fun formatDate(raw: String): String? {
+    val parsed = parseEventDate(raw) ?: return null
+    return SimpleDateFormat("EEE d MMM · HH:mm", Locale("es", "MX")).format(parsed)
+      .replaceFirstChar { it.uppercase() }
+  }
+
+  private fun parseSortDate(raw: String): Long = parseEventDate(raw)?.time ?: Long.MAX_VALUE
 
   private data class Source(val sport: String, val url: String)
 }
