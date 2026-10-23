@@ -41,3 +41,8 @@ All ongoing work is being committed to this feature branch. Do not merge into `m
 - No APK has been generated for these grouped changes.
 - Compilation and testing on a physical Android TV device are still pending.
 - Continue grouping a couple more requested changes before building one APK for testing.
+
+## GitHub sync verification — 2026-10-23
+- Verified remotely on this branch that the grouped feature files are present, including the automatic NASA wallpaper repository, weather changes, app dock, moon widget, RSS gaming news, sports widget, and TVMaze episode-date formatting.
+- Confirmed the static-review follow-up is present: obsolete custom-sports callback references were removed, and the compact TV-series field returns the next episode date only.
+- This is a repository-content verification checkpoint, not a build/test result. APK compilation and Android TV device testing remain pending.
