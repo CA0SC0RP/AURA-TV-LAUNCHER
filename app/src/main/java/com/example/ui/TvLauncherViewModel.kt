@@ -35,7 +35,7 @@ data class TvLauncherUiState(
   val currentWallpaperId: String = "cosmic_nebula",
   val customWallpaperUrl: String? = null,
   val isFahrenheit: Boolean = false,
-  val weatherLocation: String = "Madrid, España",
+  val weatherLocation: String = "",
   val isLoading: Boolean = true
 )
 
@@ -87,8 +87,8 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       // 4. Moon
       val moon = MoonCalculator.calculate()
 
-      // 5. Initial Weather fallback
-      val weather = weatherRepo.getFallback()
+      // Weather remains empty until the user configures a location.
+      val weather: WeatherData? = null
 
       _uiState.update {
         it.copy(
@@ -104,14 +104,20 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       }
 
       // Fetch live weather in background
-      refreshWeather(prefs.getWeatherLocation(), prefs.isFahrenheit())
+      val savedLocation = prefs.getWeatherLocation().trim()
+      if (savedLocation.isNotEmpty()) refreshWeather(savedLocation, prefs.isFahrenheit())
     }
   }
 
   fun refreshWeather(location: String, isFahrenheit: Boolean) {
+    val cleanLocation = location.trim()
+    if (cleanLocation.isEmpty()) {
+      _uiState.update { it.copy(weatherData = null, weatherLocation = "") }
+      return
+    }
     viewModelScope.launch {
-      val data = weatherRepo.fetchWeather(location, isFahrenheit)
-      _uiState.update { it.copy(weatherData = data, weatherLocation = location) }
+      val data = weatherRepo.fetchWeather(cleanLocation, isFahrenheit)
+      _uiState.update { it.copy(weatherData = data, weatherLocation = cleanLocation) }
     }
   }
 
