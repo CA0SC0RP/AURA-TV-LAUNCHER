@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Locale
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.MoonPhaseInfo
 import com.example.ui.theme.NeonAmber
