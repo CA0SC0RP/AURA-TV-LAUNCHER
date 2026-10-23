@@ -31,6 +31,7 @@ data class TvLauncherUiState(
   val moonPhaseInfo: MoonPhaseInfo = MoonCalculator.calculate(),
   val sportsEvents: List<SportsEvent> = emptyList(),
   val allSportsEvents: List<SportsEvent> = emptyList(),
+  val favoriteSportsTeams: Set<String> = emptySet(),
   val selectedSportFilter: String = "Todos",
   val gameNews: List<GameNewsItem> = emptyList(),
   val pinnedApps: List<AppItem> = emptyList(),
@@ -57,7 +58,8 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       customWallpaperUrl = prefs.getCustomWallpaperUrl(),
       isFahrenheit = prefs.isFahrenheit(),
       weatherLocation = prefs.getWeatherLocation(),
-      selectedSportFilter = prefs.getSportFilter()
+      selectedSportFilter = prefs.getSportFilter(),
+      favoriteSportsTeams = prefs.getFavoriteSportsTeams()
     )
   )
   val uiState: StateFlow<TvLauncherUiState> = _uiState.asStateFlow()
@@ -198,6 +200,13 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     prefs.setSportFilter(filter)
     val filteredEvents = sportsRepo.filterEvents(_uiState.value.allSportsEvents, filter)
     _uiState.update { it.copy(selectedSportFilter = filter, sportsEvents = filteredEvents) }
+  }
+
+  fun toggleFavoriteSportsTeam(team: String) {
+    val updated = _uiState.value.favoriteSportsTeams.toMutableSet()
+    if (team in updated) updated.remove(team) else updated.add(team)
+    prefs.setFavoriteSportsTeams(updated)
+    _uiState.update { it.copy(favoriteSportsTeams = updated) }
   }
 
   fun addCustomSportEvent(
