@@ -16,7 +16,8 @@ All ongoing work is being committed to this feature branch. Do not merge into `m
 - Dock and manager use actual installed-app icons where available. Placeholder preset entries are no longer shown as though installed.
 - The default favorites are capped at six.
 - The sports widget is being changed to show only NBA, football/soccer, Formula 1, and NFL schedules.
-- The compact sports widget shows upcoming events and opens a larger calendar with date/time, event status, tournament, and venue when supplied by the data source.
+- The compact sports widget shows up to three upcoming events and opens a larger calendar with date/time, event status, tournament, and venue when supplied by the data source.
+- Favorite teams can be selected from the available schedule in the expanded calendar and are saved locally; the compact widget prioritizes their matches while continuing to show Formula 1 races.
 - Sports schedules are fetched from ESPN scoreboard endpoints for NBA, Liga MX, Premier League, LaLiga, F1, and NFL; unavailable feeds are skipped instead of using placeholder fixtures. Feed coverage and Android TV display still require verification.
 - The gaming-news widget has a larger presentation area, a rotating visual card, previous/next controls, and a detail dialog with a larger image and readable summary.
 - Selecting a gaming-news item opens its detail view; Back closes it and returns to the launcher.
