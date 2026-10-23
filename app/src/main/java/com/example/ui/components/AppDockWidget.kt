@@ -109,8 +109,8 @@ fun AppDockWidget(
         TvCard(
           onClick = { showManagerDialog = true },
           modifier = Modifier
-            .width(64.dp)
-            .height(64.dp),
+            .width(56.dp)
+            .height(56.dp),
           shape = RoundedCornerShape(10.dp),
           backgroundColor = TvSurface.copy(alpha = 0.6f),
           focusedBorderColor = NeonCyan,
@@ -129,7 +129,7 @@ fun AppDockWidget(
               imageVector = Icons.Default.Add,
               contentDescription = "Agregar aplicaciones",
               tint = NeonCyan,
-              modifier = Modifier.size(30.dp)
+              modifier = Modifier.size(26.dp)
             )
           }
         }
@@ -159,8 +159,8 @@ fun AppDockItem(
   TvCard(
     onClick = onClick,
     modifier = Modifier
-      .width(64.dp)
-      .height(64.dp),
+      .width(56.dp)
+      .height(56.dp),
     focusedBorderColor = NeonCyan,
     focusedScale = 1.10f,
     shape = RoundedCornerShape(14.dp)
@@ -168,8 +168,8 @@ fun AppDockItem(
     Box(
       modifier = Modifier
         .fillMaxSize()
-        .padding(7.dp)
-        .clip(RoundedCornerShape(11.dp))
+        .padding(5.dp)
+        .clip(RoundedCornerShape(10.dp))
         .background(getAppGradient(app.defaultIconType)),
       contentAlignment = Alignment.Center
     ) {
