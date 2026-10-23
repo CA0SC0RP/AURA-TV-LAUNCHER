@@ -181,9 +181,6 @@ fun TvLauncherScreen(
                   sportsEvents = uiState.allSportsEvents,
                   selectedFilter = uiState.selectedSportFilter,
                   onFilterChange = { viewModel.setSportFilter(it) },
-                  onAddCustomSport = { s, tr, h, a, t, ch ->
-                    viewModel.addCustomSportEvent(s, tr, h, a, t, ch)
-                  },
                   favoriteTeams = uiState.favoriteSportsTeams,
                   onToggleFavoriteTeam = { viewModel.toggleFavoriteSportsTeam(it) },
                   modifier = Modifier
@@ -300,7 +297,6 @@ fun TvLauncherScreen(
                 sportsEvents = uiState.allSportsEvents,
                 selectedFilter = uiState.selectedSportFilter,
                 onFilterChange = { viewModel.setSportFilter(it) },
-                onAddCustomSport = { s, tr, h, a, t, ch -> viewModel.addCustomSportEvent(s, tr, h, a, t, ch) },
                 favoriteTeams = uiState.favoriteSportsTeams,
                 onToggleFavoriteTeam = { viewModel.toggleFavoriteSportsTeam(it) },
                 modifier = Modifier
