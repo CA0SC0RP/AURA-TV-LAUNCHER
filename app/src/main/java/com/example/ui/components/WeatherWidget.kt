@@ -314,7 +314,7 @@ fun WeatherWidget(
               )
 
               Text(
-                text = item.condition,
+                text = item.condition + (item.precipitationProbabilityPercent?.let { " · lluvia $it%" } ?: ""),
                 color = TvTextSecondary,
                 fontSize = 9.sp,
                 maxLines = 1,
@@ -603,7 +603,7 @@ fun ExpandedWeatherDialog(
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                      text = item.condition,
+                      text = item.condition + (item.precipitationProbabilityPercent?.let { " · lluvia $it%" } ?: ""),
                       color = TvTextSecondary,
                       fontSize = 10.sp,
                       maxLines = 1,
