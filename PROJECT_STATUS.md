@@ -30,6 +30,11 @@ All ongoing work is being committed to this feature branch. Do not merge into `m
 - The top status bar no longer repeats the clock/date; that information is already shown by the weather widget.
 - The TV-series strip uses taller, wider cards with larger posters and titles. Each card prioritizes the next episode date and no longer displays season/episode numbers in the compact view.
 
+- Wallpaper selection is now automatic: AURA queries NASA's public Image and Video Library for astronomical imagery, downloads a high-resolution asset when available, and caches the last successful image locally.
+- The automatic space wallpaper rotates every 12 hours while the launcher is active and checks on startup whether a refresh is due. If network access or NASA's service fails, the last cached wallpaper remains visible; the bundled cosmic wallpaper is the first-run fallback.
+- Removed the manual wallpaper picker, custom image picker, and wallpaper URL entry from the launcher UI. The existing dark appearance remains fixed; no automatic day/night theme switching is being added.
+- NASA asset selection, download behavior, cache persistence, image resolution, and rotation still require compilation and device/network verification.
+
 ## Verification status
 - Changes are committed to this feature branch.
 - No APK has been generated for these grouped changes.
