@@ -1,6 +1,7 @@
 package com.example.ui.components
 
-import android.widget.Toast
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,11 +56,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,57 +91,13 @@ fun AppDockWidget(
     modifier = modifier,
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
-    // Header
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 14.dp, vertical = 2.dp),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-          imageVector = Icons.Default.Apps,
-          contentDescription = null,
-          tint = NeonCyan,
-          modifier = Modifier.size(15.dp)
-        )
-        Spacer(modifier = Modifier.width(5.dp))
-        Text(
-          text = "Aplicaciones",
-          color = TvTextPrimary,
-          fontSize = 13.sp,
-          fontWeight = FontWeight.Bold
-        )
-      }
-
-      Box(
-        modifier = Modifier
-          .clip(RoundedCornerShape(6.dp))
-          .background(Color.White.copy(alpha = 0.12f))
-          .clickable { showManagerDialog = true }
-          .padding(horizontal = 7.dp, vertical = 2.dp)
-      ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Icon(Icons.Default.Add, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(12.dp))
-          Spacer(modifier = Modifier.width(3.dp))
-          Text(
-            text = "Gestionar",
-            color = NeonCyan,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
-          )
-        }
-      }
-    }
-
-    // Apps Horizontal Row: compact 54dp cards with 8dp spacing to prevent any cut off edges
+    // Minimal icon-only dock: up to six favorite apps plus the add button.
     LazyRow(
       contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
       horizontalArrangement = Arrangement.spacedBy(8.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
-      items(pinnedApps, key = { it.packageName }) { app ->
+      items(pinnedApps.take(6), key = { it.packageName }) { app ->
         AppDockItem(
           app = app,
           onClick = { onLaunchApp(app.packageName) }
@@ -152,39 +109,27 @@ fun AppDockWidget(
         TvCard(
           onClick = { showManagerDialog = true },
           modifier = Modifier
-            .width(54.dp)
-            .height(54.dp),
+            .width(64.dp)
+            .height(64.dp),
           shape = RoundedCornerShape(10.dp),
           backgroundColor = TvSurface.copy(alpha = 0.6f),
           focusedBorderColor = NeonCyan,
           focusedScale = 1.08f
         ) {
-          Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+          Box(
+            modifier = Modifier
+              .fillMaxSize()
+              .padding(8.dp)
+              .clip(CircleShape)
+              .background(NeonCyan.copy(alpha = 0.12f))
+              .border(1.dp, NeonCyan.copy(alpha = 0.45f), CircleShape),
+            contentAlignment = Alignment.Center
           ) {
-            Box(
-              modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(NeonCyan.copy(alpha = 0.15f))
-                .border(1.dp, NeonCyan.copy(alpha = 0.4f), CircleShape),
-              contentAlignment = Alignment.Center
-            ) {
-              Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Agregar App",
-                tint = NeonCyan,
-                modifier = Modifier.size(16.dp)
-              )
-            }
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-              text = "Más",
-              color = TvTextSecondary,
-              fontSize = 9.sp,
-              fontWeight = FontWeight.Medium
+            Icon(
+              imageVector = Icons.Default.Add,
+              contentDescription = "Agregar aplicaciones",
+              tint = NeonCyan,
+              modifier = Modifier.size(30.dp)
             )
           }
         }
@@ -214,47 +159,58 @@ fun AppDockItem(
   TvCard(
     onClick = onClick,
     modifier = Modifier
-      .width(54.dp)
-      .height(54.dp),
+      .width(64.dp)
+      .height(64.dp),
     focusedBorderColor = NeonCyan,
     focusedScale = 1.10f,
-    shape = RoundedCornerShape(10.dp)
+    shape = RoundedCornerShape(14.dp)
   ) {
-    Column(
+    Box(
       modifier = Modifier
         .fillMaxSize()
-        .padding(3.dp),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.Center
+        .padding(7.dp)
+        .clip(RoundedCornerShape(11.dp))
+        .background(getAppGradient(app.defaultIconType)),
+      contentAlignment = Alignment.Center
     ) {
-      // App Icon
-      Box(
-        modifier = Modifier
-          .size(28.dp)
-          .clip(RoundedCornerShape(7.dp))
-          .background(getAppGradient(app.defaultIconType)),
-        contentAlignment = Alignment.Center
-      ) {
-        Icon(
-          imageVector = getAppIconVector(app.defaultIconType),
-          contentDescription = app.label,
-          tint = Color.White,
-          modifier = Modifier.size(16.dp)
-        )
-      }
-
-      Spacer(modifier = Modifier.height(2.dp))
-
-      Text(
-        text = app.label,
-        color = Color.White,
-        fontSize = 9.sp,
-        fontWeight = FontWeight.Medium,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        textAlign = TextAlign.Center
-      )
+      AppIcon(app = app, modifier = Modifier.fillMaxSize())
     }
+  }
+}
+
+@Composable
+private fun AppIcon(
+  app: AppItem,
+  modifier: Modifier = Modifier
+) {
+  val iconBitmap = remember(app.icon) {
+    app.icon?.let { drawable ->
+      runCatching {
+        val width = drawable.intrinsicWidth.coerceIn(1, 256)
+        val height = drawable.intrinsicHeight.coerceIn(1, 256)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, width, height)
+        drawable.draw(canvas)
+        bitmap.asImageBitmap()
+      }.getOrNull()
+    }
+  }
+
+  if (iconBitmap != null) {
+    Image(
+      bitmap = iconBitmap,
+      contentDescription = app.label,
+      modifier = modifier,
+      contentScale = androidx.compose.ui.layout.ContentScale.Fit
+    )
+  } else {
+    Icon(
+      imageVector = getAppIconVector(app.defaultIconType),
+      contentDescription = app.label,
+      tint = Color.White,
+      modifier = modifier.padding(8.dp)
+    )
   }
 }
 
@@ -298,6 +254,7 @@ fun AppManagerDialog(
   onLaunch: (String) -> Unit
 ) {
   var filterQuery by remember { mutableStateOf("") }
+  var limitMessage by remember { mutableStateOf<String?>(null) }
   val filtered = allApps.filter { it.label.contains(filterQuery, ignoreCase = true) }
 
   TvModalOverlay(onDismiss = onDismiss) {
@@ -356,6 +313,15 @@ fun AppManagerDialog(
           )
         )
 
+        limitMessage?.let { message ->
+          Text(
+            text = message,
+            color = NeonCyan,
+            fontSize = 10.sp,
+            modifier = Modifier.padding(top = 4.dp)
+          )
+        }
+
         Spacer(modifier = Modifier.height(8.dp))
 
         LazyColumn(
@@ -385,12 +351,7 @@ fun AppManagerDialog(
                     .background(getAppGradient(app.defaultIconType)),
                   contentAlignment = Alignment.Center
                 ) {
-                  Icon(
-                    imageVector = getAppIconVector(app.defaultIconType),
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                  )
+                  AppIcon(app = app, modifier = Modifier.fillMaxSize().padding(2.dp))
                 }
 
                 Spacer(modifier = Modifier.width(10.dp))
@@ -427,7 +388,12 @@ fun AppManagerDialog(
                 Checkbox(
                   checked = app.isPinned,
                   onCheckedChange = { checked ->
-                    onTogglePin(app.packageName, checked)
+                    if (checked && allApps.count { it.isPinned } >= 6) {
+                      limitMessage = "Puedes mostrar hasta 6 aplicaciones. Quita una para agregar otra."
+                    } else {
+                      limitMessage = null
+                      onTogglePin(app.packageName, checked)
+                    }
                   },
                   colors = CheckboxDefaults.colors(
                     checkedColor = NeonCyan,
