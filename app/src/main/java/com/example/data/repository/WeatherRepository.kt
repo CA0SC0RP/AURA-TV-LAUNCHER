@@ -24,26 +24,43 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
 
   suspend fun fetchWeather(queryLocation: String, isFahrenheit: Boolean = false): WeatherData? = withContext(Dispatchers.IO) {
     try {
-      // 1. Geocode location (city, postal code, or country)
+      // 1. Resolve a postal code within the selected country, or accept a legacy city query.
       val cleanQuery = queryLocation.trim()
-      val geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=${java.net.URLEncoder.encode(cleanQuery, "UTF-8")}&count=1&language=es&format=json"
+      val locationParts = cleanQuery.split("|", limit = 2)
+      val geoUrl: String
+      if (locationParts.size == 2) {
+        val postalCode = locationParts[0].trim()
+        val countryInput = locationParts[1].trim()
+        val countryCode = if (countryInput.length == 2) {
+          countryInput.uppercase(Locale.ROOT)
+        } else {
+          val countryUrl = "https://geocoding-api.open-meteo.com/v1/search?name=${java.net.URLEncoder.encode(countryInput, "UTF-8")}&count=1&language=es&format=json"
+          val countryResponse = client.newCall(Request.Builder().url(countryUrl).build()).execute()
+          val countryBody = countryResponse.body?.string() ?: return@withContext null
+          val countryResults = JSONObject(countryBody).optJSONArray("results") ?: return@withContext null
+          if (countryResults.length() == 0) return@withContext null
+          countryResults.getJSONObject(0).optString("country_code", "").uppercase(Locale.ROOT)
+        }
+        if (countryCode.length != 2) return@withContext null
+        geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=${java.net.URLEncoder.encode(postalCode, "UTF-8")}&countryCode=$countryCode&count=1&language=es&format=json"
+      } else {
+        // Compatibility for previously saved city names.
+        geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=${java.net.URLEncoder.encode(cleanQuery, "UTF-8")}&count=1&language=es&format=json"
+      }
       val geoReq = Request.Builder().url(geoUrl).build()
       val geoResp = client.newCall(geoReq).execute()
       val geoBody = geoResp.body?.string() ?: return@withContext null
 
       val geoJson = JSONObject(geoBody)
       val results = geoJson.optJSONArray("results")
-      if (results == null || results.length() == 0) {
-        return@withContext null
-      }
+      if (results == null || results.length() == 0) return@withContext null
 
       val firstResult = results.getJSONObject(0)
       if (!firstResult.has("latitude") || !firstResult.has("longitude")) return@withContext null
       val lat = firstResult.optDouble("latitude")
       val lon = firstResult.optDouble("longitude")
-      val cityName = firstResult.optString("name", queryLocation)
+      val cityName = firstResult.optString("name", cleanQuery)
       val country = firstResult.optString("country", "")
-
       // 2. Fetch Forecast from Open-Meteo
       val unitParam = if (isFahrenheit) "&temperature_unit=fahrenheit" else ""
       val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto$unitParam"
