@@ -17,6 +17,7 @@ class LauncherPreferences(context: Context) {
     private const val KEY_CUSTOM_WALLPAPER_URL = "custom_wallpaper_url"
     private const val KEY_SERIES_JSON = "saved_series_json"
     private const val KEY_SPORT_FILTER = "sport_filter"
+    private const val KEY_FAVORITE_SPORTS_TEAMS = "favorite_sports_teams"
   }
 
   fun getPinnedApps(): Set<String> {
@@ -27,8 +28,7 @@ class LauncherPreferences(context: Context) {
       "com.amazon.amazonvideo.livingroom",
       "com.disney.disneyplus",
       "com.spotify.tv.android",
-      "com.android.vending",
-      "com.android.settings"
+      "com.android.vending"
     )
   }
 
@@ -36,7 +36,11 @@ class LauncherPreferences(context: Context) {
     prefs.edit().putStringSet(KEY_PINNED_APPS, packages).apply()
   }
 
-  fun getWeatherLocation(): String = prefs.getString(KEY_LOCATION, "Madrid, España") ?: "Madrid, España"
+  fun getWeatherLocation(): String {
+    val saved = prefs.getString(KEY_LOCATION, "") ?: ""
+    // Older builds silently defaulted to Madrid; treat that legacy value as unconfigured.
+    return if (saved.equals("Madrid, España", ignoreCase = true)) "" else saved
+  }
 
   fun setWeatherLocation(location: String) {
     prefs.edit().putString(KEY_LOCATION, location).apply()
@@ -64,6 +68,13 @@ class LauncherPreferences(context: Context) {
 
   fun setSportFilter(filter: String) {
     prefs.edit().putString(KEY_SPORT_FILTER, filter).apply()
+  }
+
+  fun getFavoriteSportsTeams(): Set<String> =
+    prefs.getStringSet(KEY_FAVORITE_SPORTS_TEAMS, emptySet())?.toSet() ?: emptySet()
+
+  fun setFavoriteSportsTeams(teams: Set<String>) {
+    prefs.edit().putStringSet(KEY_FAVORITE_SPORTS_TEAMS, teams.toSet()).apply()
   }
 
   fun getSavedSeries(): List<TvSeries>? {

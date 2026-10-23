@@ -1,9 +1,14 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,10 +28,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Gamepad
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -39,11 +46,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material3.Surface
+import coil.compose.AsyncImage
 import com.example.data.model.GameNewsItem
 import com.example.ui.theme.NeonBlue
 import com.example.ui.theme.NeonPurple
 import com.example.ui.theme.NeonRose
 import com.example.ui.theme.TvSurface
+import com.example.ui.theme.TvSurfaceElevated
+import com.example.ui.theme.TvBorderFocused
 import com.example.ui.theme.TvTextPrimary
 import com.example.ui.theme.TvTextSecondary
 import kotlinx.coroutines.delay
@@ -54,6 +66,7 @@ fun GameNewsWidget(
   modifier: Modifier = Modifier
 ) {
   var currentIndex by remember { mutableIntStateOf(0) }
+  var selectedNews by remember { mutableStateOf<GameNewsItem?>(null) }
 
   // Auto-pass ticker every 6.5 seconds
   LaunchedEffect(newsList.size) {
@@ -68,9 +81,11 @@ fun GameNewsWidget(
   val currentItem = if (newsList.isNotEmpty()) newsList[currentIndex % newsList.size] else null
 
   TvCard(
+    onClick = { currentItem?.let { selectedNews = it } },
     modifier = modifier,
-    backgroundColor = TvSurface.copy(alpha = 0.82f),
-    focusedBorderColor = NeonPurple
+    backgroundColor = TvSurface.copy(alpha = 0.88f),
+    focusedBorderColor = NeonPurple,
+    focusedScale = 1.04f
   ) {
     Column(
       modifier = Modifier
@@ -107,7 +122,7 @@ fun GameNewsWidget(
             .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
           Text(
-            text = "Sólo Información",
+            text = "RSS · ACTUALIZABLE",
             color = TvTextSecondary,
             fontSize = 9.sp,
             fontWeight = FontWeight.Medium
@@ -115,8 +130,19 @@ fun GameNewsWidget(
         }
       }
 
-      // Animated News Content
-      if (currentItem != null) {
+      // Animated RSS news content. No bundled sample stories are shown.
+      if (currentItem == null) {
+        Box(
+          modifier = Modifier.fillMaxWidth().weight(1f),
+          contentAlignment = Alignment.Center
+        ) {
+          Text(
+            text = "No hay noticias disponibles. Comprueba la conexión e inténtalo de nuevo.",
+            color = TvTextSecondary,
+            fontSize = 12.sp
+          )
+        }
+      } else {
         AnimatedContent(
           targetState = currentItem,
           transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -129,9 +155,29 @@ fun GameNewsWidget(
             modifier = Modifier
               .fillMaxSize()
               .padding(vertical = 4.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(5.dp)
           ) {
-            Column {
+            if (!game.imageUrl.isNullOrBlank()) {
+              AsyncImage(
+                model = game.imageUrl,
+                contentDescription = game.title,
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .heightIn(min = 58.dp, max = 82.dp)
+                  .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+              )
+            } else {
+              Box(
+                modifier = Modifier.fillMaxWidth().height(58.dp)
+                  .clip(RoundedCornerShape(8.dp))
+                  .background(Color.White.copy(alpha = 0.06f)),
+                contentAlignment = Alignment.Center
+              ) {
+                Text("El RSS no incluye imagen", color = TvTextSecondary, fontSize = 10.sp)
+              }
+            }
+            Column(modifier = Modifier.clickable { selectedNews = game }) {
               Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -140,9 +186,9 @@ fun GameNewsWidget(
                 Text(
                   text = game.title,
                   color = Color.White,
-                  fontSize = 14.sp,
+                  fontSize = 13.sp,
                   fontWeight = FontWeight.Bold,
-                  maxLines = 1,
+                  maxLines = 2,
                   overflow = TextOverflow.Ellipsis,
                   modifier = Modifier.weight(1f)
                 )
@@ -167,7 +213,7 @@ fun GameNewsWidget(
               Spacer(modifier = Modifier.height(2.dp))
 
               Text(
-                text = "${game.publisher} • Estreno: ${game.releaseDate}",
+                text = "${game.publisher} • Publicado: ${game.releaseDate}",
                 color = NeonRose,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold
@@ -179,7 +225,7 @@ fun GameNewsWidget(
                 text = game.summary,
                 color = TvTextSecondary,
                 fontSize = 11.sp,
-                maxLines = 2,
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis
               )
             }
@@ -259,6 +305,110 @@ fun GameNewsWidget(
           ) {
             Icon(Icons.Default.ChevronRight, contentDescription = "Siguiente", tint = Color.White, modifier = Modifier.size(16.dp))
           }
+        }
+      }
+    }
+  }
+  selectedNews?.let { game ->
+    BackHandler(enabled = true) { selectedNews = null }
+    GameNewsDetailDialog(
+      game = game,
+      onDismiss = { selectedNews = null }
+    )
+  }
+}
+
+@Composable
+private fun GameNewsDetailDialog(
+  game: GameNewsItem,
+  onDismiss: () -> Unit
+) {
+  val context = LocalContext.current
+  TvModalOverlay(onDismiss = onDismiss) {
+    Surface(
+      modifier = Modifier
+        .fillMaxWidth(0.88f)
+        .heightIn(min = 300.dp, max = 420.dp),
+      shape = RoundedCornerShape(18.dp),
+      color = TvSurfaceElevated,
+      border = androidx.compose.foundation.BorderStroke(1.5.dp, TvBorderFocused)
+    ) {
+      Column(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+          Text(
+            text = "NOTICIAS DE VIDEOJUEGOS",
+            color = NeonPurple,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+          )
+          androidx.compose.material3.IconButton(onClick = onDismiss) {
+            Icon(Icons.Default.Close, contentDescription = "Cerrar noticia", tint = TvTextSecondary)
+          }
+        }
+
+        if (!game.imageUrl.isNullOrBlank()) {
+          AsyncImage(
+            model = game.imageUrl,
+            contentDescription = game.title,
+            modifier = Modifier
+              .fillMaxWidth()
+              .heightIn(min = 110.dp, max = 170.dp)
+              .clip(RoundedCornerShape(10.dp)),
+            contentScale = ContentScale.Crop
+          )
+        }
+
+        Text(
+          text = game.title,
+          color = Color.White,
+          fontSize = 21.sp,
+          fontWeight = FontWeight.ExtraBold,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis
+        )
+
+        Text(
+          text = "${game.publisher}  •  ${game.releaseDate}",
+          color = NeonRose,
+          fontSize = 12.sp,
+          fontWeight = FontWeight.SemiBold
+        )
+
+        Text(
+          text = game.summary,
+          color = TvTextPrimary,
+          fontSize = 14.sp,
+          lineHeight = 20.sp
+        )
+
+        Text(
+          text = "Fuente: ${game.publisher}  ·  ${game.releaseDate}",
+          color = NeonBlue,
+          fontSize = 12.sp,
+          fontWeight = FontWeight.Bold
+        )
+
+        if (!game.articleUrl.isNullOrBlank()) {
+          Text(
+            text = "Abrir noticia completa",
+            color = NeonBlue,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable {
+              runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(game.articleUrl)))
+              }
+            }.padding(horizontal = 10.dp, vertical = 8.dp)
+          )
         }
       }
     }

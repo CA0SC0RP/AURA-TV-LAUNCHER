@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +67,7 @@ fun WeatherWidget(
   weather: WeatherData,
   onLocationChange: (String) -> Unit,
   onToggleUnit: () -> Unit,
+  savedLocation: String = "",
   modifier: Modifier = Modifier
 ) {
   var isHourlyView by remember { mutableStateOf(false) } // false = Día a día, true = Por hora
@@ -313,7 +315,7 @@ fun WeatherWidget(
               )
 
               Text(
-                text = item.condition,
+                text = item.condition + (item.precipitationProbabilityPercent?.let { " · lluvia $it%" } ?: ""),
                 color = TvTextSecondary,
                 fontSize = 9.sp,
                 maxLines = 1,
@@ -338,6 +340,7 @@ fun WeatherWidget(
 
   // Expanded Weather Window
   if (showExpandedDialog) {
+    BackHandler(enabled = true) { showExpandedDialog = false }
     ExpandedWeatherDialog(
       weather = weather,
       onDismiss = { showExpandedDialog = false },
@@ -352,7 +355,7 @@ fun WeatherWidget(
   // Location Search Dialog
   if (showLocationDialog) {
     LocationInputDialog(
-      currentLocation = weather.cityName,
+      currentLocation = savedLocation,
       onDismiss = { showLocationDialog = false },
       onConfirm = { newLoc ->
         onLocationChange(newLoc)
@@ -602,7 +605,7 @@ fun ExpandedWeatherDialog(
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                      text = item.condition,
+                      text = item.condition + (item.precipitationProbabilityPercent?.let { " · lluvia $it%" } ?: ""),
                       color = TvTextSecondary,
                       fontSize = 10.sp,
                       maxLines = 1,
@@ -632,9 +635,9 @@ fun LocationInputDialog(
   onDismiss: () -> Unit,
   onConfirm: (String) -> Unit
 ) {
-  var input by remember { mutableStateOf(currentLocation) }
-
-  val popularCities = listOf("Madrid", "Ciudad de México", "Chicago", "Miami", "Buenos Aires", "Bogotá", "Barcelona")
+  val savedParts = remember(currentLocation) { currentLocation.split("|", limit = 2) }
+  var postalCode by remember(currentLocation) { mutableStateOf(savedParts.getOrNull(0)?.takeIf { savedParts.size == 2 } ?: "") }
+  var country by remember(currentLocation) { mutableStateOf(savedParts.getOrNull(1)?.takeIf { savedParts.size == 2 } ?: "") }
 
   TvModalOverlay(onDismiss = onDismiss) {
     Surface(
@@ -663,48 +666,34 @@ fun LocationInputDialog(
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-
         Text(
-          text = "Selecciona una ciudad o escribe país / código postal:",
+          text = "Introduce el país y el código postal para consultar el pronóstico de esa zona.",
           color = TvTextSecondary,
           fontSize = 11.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+          value = country,
+          onValueChange = { country = it },
+          placeholder = { Text("País (ej. México o MX)", fontSize = 11.sp) },
+          modifier = Modifier.fillMaxWidth().height(52.dp),
+          singleLine = true,
+          colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = NeonBlue,
+            unfocusedBorderColor = TvBorder,
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White
+          )
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Quick City selector row (convenient without virtual keyboard)
-        LazyRow(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-          items(popularCities) { city ->
-            Box(
-              modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(if (input.equals(city, ignoreCase = true)) NeonBlue.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.3f))
-                .clickable {
-                  input = city
-                  onConfirm(city)
-                }
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-              Text(
-                text = city,
-                color = if (input.equals(city, ignoreCase = true)) NeonBlue else Color.White,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium
-              )
-            }
-          }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
         OutlinedTextField(
-          value = input,
-          onValueChange = { input = it },
-          placeholder = { Text("País, Ciudad o Código Postal", fontSize = 11.sp) },
-          modifier = Modifier.fillMaxWidth().height(46.dp),
+          value = postalCode,
+          onValueChange = { postalCode = it },
+          placeholder = { Text("Código postal", fontSize = 11.sp) },
+          modifier = Modifier.fillMaxWidth().height(52.dp),
           singleLine = true,
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = NeonBlue,
@@ -715,15 +704,17 @@ fun LocationInputDialog(
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.End
         ) {
           Button(
             onClick = {
-              if (input.isNotBlank()) onConfirm(input)
+              if (country.isNotBlank() && postalCode.isNotBlank()) {
+                onConfirm("${postalCode.trim()}|${country.trim()}")
+              }
             },
+            enabled = country.isNotBlank() && postalCode.isNotBlank(),
             colors = ButtonDefaults.buttonColors(containerColor = NeonBlue),
             modifier = Modifier.height(34.dp),
             shape = RoundedCornerShape(8.dp)
@@ -735,5 +726,61 @@ fun LocationInputDialog(
         }
       }
     }
+  }
+}
+
+@Composable
+fun WeatherSetupWidget(
+  onLocationChange: (String) -> Unit,
+  savedLocation: String = "",
+  modifier: Modifier = Modifier
+) {
+  var showLocationDialog by remember { mutableStateOf(false) }
+
+  TvCard(
+    onClick = { showLocationDialog = true },
+    modifier = modifier,
+    backgroundColor = TvSurface.copy(alpha = 0.82f),
+    focusedBorderColor = NeonBlue,
+    focusedScale = 1.03f
+  ) {
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(12.dp),
+      verticalArrangement = Arrangement.Center,
+      horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+      Icon(
+        imageVector = Icons.Default.EditLocationAlt,
+        contentDescription = "Configurar ubicación del clima",
+        tint = NeonBlue,
+        modifier = Modifier.size(24.dp)
+      )
+      Spacer(modifier = Modifier.height(8.dp))
+      Text(
+        text = if (savedLocation.isBlank()) "Configurar clima" else "Clima no disponible",
+        color = Color.White,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold
+      )
+      Spacer(modifier = Modifier.height(4.dp))
+      Text(
+        text = if (savedLocation.isBlank()) "Introduce país y código postal" else "Revisar ubicación o reintentar",
+        color = TvTextSecondary,
+        fontSize = 10.sp
+      )
+    }
+  }
+
+  if (showLocationDialog) {
+    LocationInputDialog(
+      currentLocation = savedLocation,
+      onDismiss = { showLocationDialog = false },
+      onConfirm = { location ->
+        onLocationChange(location)
+        showLocationDialog = false
+      }
+    )
   }
 }

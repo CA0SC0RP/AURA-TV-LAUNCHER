@@ -8,7 +8,6 @@ import com.example.data.model.GameNewsItem
 import com.example.data.model.MoonPhaseInfo
 import com.example.data.model.SportsEvent
 import com.example.data.model.TvSeries
-import com.example.data.model.WallpaperItem
 import com.example.data.model.WeatherData
 import com.example.data.repository.AppManagerRepository
 import com.example.data.repository.GameNewsRepository
@@ -17,17 +16,22 @@ import com.example.data.repository.MoonCalculator
 import com.example.data.repository.SportsRepository
 import com.example.data.repository.TvMazeRepository
 import com.example.data.repository.WeatherRepository
+import com.example.data.repository.WallpaperRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import java.util.concurrent.TimeUnit
 
 data class TvLauncherUiState(
   val seriesList: List<TvSeries> = emptyList(),
   val weatherData: WeatherData? = null,
   val moonPhaseInfo: MoonPhaseInfo = MoonCalculator.calculate(),
   val sportsEvents: List<SportsEvent> = emptyList(),
+  val allSportsEvents: List<SportsEvent> = emptyList(),
+  val favoriteSportsTeams: Set<String> = emptySet(),
   val selectedSportFilter: String = "Todos",
   val gameNews: List<GameNewsItem> = emptyList(),
   val pinnedApps: List<AppItem> = emptyList(),
@@ -35,7 +39,7 @@ data class TvLauncherUiState(
   val currentWallpaperId: String = "cosmic_nebula",
   val customWallpaperUrl: String? = null,
   val isFahrenheit: Boolean = false,
-  val weatherLocation: String = "Madrid, España",
+  val weatherLocation: String = "",
   val isLoading: Boolean = true
 )
 
@@ -47,14 +51,16 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
   private val sportsRepo = SportsRepository()
   private val gameNewsRepo = GameNewsRepository()
   private val appManagerRepo = AppManagerRepository(application)
+  private val wallpaperRepo = WallpaperRepository(application)
 
   private val _uiState = MutableStateFlow(
     TvLauncherUiState(
-      currentWallpaperId = prefs.getWallpaperId(),
-      customWallpaperUrl = prefs.getCustomWallpaperUrl(),
+      currentWallpaperId = "space_auto",
+      customWallpaperUrl = wallpaperRepo.cachedWallpaperUri(),
       isFahrenheit = prefs.isFahrenheit(),
       weatherLocation = prefs.getWeatherLocation(),
-      selectedSportFilter = prefs.getSportFilter()
+      selectedSportFilter = prefs.getSportFilter(),
+      favoriteSportsTeams = prefs.getFavoriteSportsTeams()
     )
   )
   val uiState: StateFlow<TvLauncherUiState> = _uiState.asStateFlow()
@@ -64,6 +70,26 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
 
   init {
     loadAllData()
+    viewModelScope.launch {
+      while (true) {
+        delay(TimeUnit.MINUTES.toMillis(30))
+        refreshGameNews()
+        refreshSports()
+      }
+    }
+    viewModelScope.launch {
+      while (true) {
+        delay(WallpaperRepository.ROTATION_INTERVAL_MS)
+        refreshSpaceWallpaper(force = true)
+      }
+    }
+  }
+
+  private fun refreshGameNews() {
+    viewModelScope.launch {
+      val articles = gameNewsRepo.getGameNews()
+      _uiState.update { it.copy(gameNews = articles) }
+    }
   }
 
   fun loadAllData() {
@@ -77,41 +103,78 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
 
       // 2. Apps
       val pinnedSet = prefs.getPinnedApps()
-      val installed = appManagerRepo.getInstalledApps(pinnedSet)
+      val discoveredApps = appManagerRepo.getInstalledApps(pinnedSet)
+      // Keep only favorites that are actually installed and normalize the dock to six items.
+      val pinnedPackages = discoveredApps.filter { it.isPinned }.take(6).map { it.packageName }.toSet()
+      prefs.setPinnedApps(pinnedPackages)
+      val installed = discoveredApps.map { it.copy(isPinned = it.packageName in pinnedPackages) }
       val pinned = installed.filter { it.isPinned }
 
-      // 3. Sports & Games
-      val sports = sportsRepo.getEventsBySport(prefs.getSportFilter())
-      val games = gameNewsRepo.getGameNews()
+      // Sports calendars are fetched after the first screen state to avoid delaying launcher startup.
 
       // 4. Moon
       val moon = MoonCalculator.calculate()
 
-      // 5. Initial Weather fallback
-      val weather = weatherRepo.getFallback()
+      // Weather remains empty until the user configures a location.
+      val weather: WeatherData? = null
 
       _uiState.update {
         it.copy(
           seriesList = initialSeries,
           allApps = installed,
           pinnedApps = pinned,
-          sportsEvents = sports,
-          gameNews = games,
+          sportsEvents = emptyList(),
+          allSportsEvents = emptyList(),
+          gameNews = emptyList(),
           moonPhaseInfo = moon,
           weatherData = weather,
           isLoading = false
         )
       }
 
+      // Fetch RSS, sports, and the automatic space wallpaper in the background.
+      refreshGameNews()
+      refreshSports()
+      refreshSpaceWallpaper(force = false)
+
       // Fetch live weather in background
-      refreshWeather(prefs.getWeatherLocation(), prefs.isFahrenheit())
+      val savedLocation = prefs.getWeatherLocation().trim()
+      if (savedLocation.isNotEmpty()) refreshWeather(savedLocation, prefs.isFahrenheit())
+    }
+  }
+
+  private fun refreshSpaceWallpaper(force: Boolean) {
+    val cachedUri = wallpaperRepo.cachedWallpaperUri()
+    val elapsed = System.currentTimeMillis() - wallpaperRepo.lastUpdatedAt()
+    val isDue = cachedUri == null || wallpaperRepo.lastUpdatedAt() == 0L ||
+      elapsed >= WallpaperRepository.ROTATION_INTERVAL_MS
+    if (!force && !isDue) {
+      if (_uiState.value.customWallpaperUrl != cachedUri) {
+        _uiState.update { it.copy(currentWallpaperId = "space_auto", customWallpaperUrl = cachedUri) }
+      }
+      return
+    }
+    viewModelScope.launch {
+      val downloaded = wallpaperRepo.downloadNewWallpaper()
+      // A failed request leaves the previous cached image visible.
+      val uriToShow = downloaded?.uri ?: wallpaperRepo.cachedWallpaperUri()
+      if (uriToShow != null) {
+        _uiState.update {
+          it.copy(currentWallpaperId = "space_auto", customWallpaperUrl = uriToShow)
+        }
+      }
     }
   }
 
   fun refreshWeather(location: String, isFahrenheit: Boolean) {
+    val cleanLocation = location.trim()
+    if (cleanLocation.isEmpty()) {
+      _uiState.update { it.copy(weatherData = null, weatherLocation = "") }
+      return
+    }
     viewModelScope.launch {
-      val data = weatherRepo.fetchWeather(location, isFahrenheit)
-      _uiState.update { it.copy(weatherData = data, weatherLocation = location) }
+      val data = weatherRepo.fetchWeather(cleanLocation, isFahrenheit)
+      _uiState.update { it.copy(weatherData = data, weatherLocation = cleanLocation) }
     }
   }
 
@@ -151,28 +214,36 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     _uiState.update { it.copy(seriesList = current) }
   }
 
+  private fun refreshSports() {
+    viewModelScope.launch {
+      val events = sportsRepo.getUpcomingEvents()
+      val filter = _uiState.value.selectedSportFilter
+      _uiState.update {
+        it.copy(
+          allSportsEvents = events,
+          sportsEvents = sportsRepo.filterEvents(events, filter)
+        )
+      }
+    }
+  }
+
   fun setSportFilter(filter: String) {
     prefs.setSportFilter(filter)
-    val filteredEvents = sportsRepo.getEventsBySport(filter)
+    val filteredEvents = sportsRepo.filterEvents(_uiState.value.allSportsEvents, filter)
     _uiState.update { it.copy(selectedSportFilter = filter, sportsEvents = filteredEvents) }
   }
 
-  fun addCustomSportEvent(
-    sport: String,
-    tournament: String,
-    home: String,
-    away: String,
-    time: String,
-    channel: String
-  ) {
-    sportsRepo.addCustomEvent(sport, tournament, home, away, time, channel)
-    val filteredEvents = sportsRepo.getEventsBySport(_uiState.value.selectedSportFilter)
-    _uiState.update { it.copy(sportsEvents = filteredEvents) }
+  fun toggleFavoriteSportsTeam(team: String) {
+    val updated = _uiState.value.favoriteSportsTeams.toMutableSet()
+    if (team in updated) updated.remove(team) else updated.add(team)
+    prefs.setFavoriteSportsTeams(updated)
+    _uiState.update { it.copy(favoriteSportsTeams = updated) }
   }
 
   fun togglePinApp(packageName: String, shouldPin: Boolean) {
     val currentPinned = prefs.getPinnedApps().toMutableSet()
     if (shouldPin) {
+      if (packageName !in currentPinned && _uiState.value.allApps.count { it.isPinned } >= 6) return
       currentPinned.add(packageName)
     } else {
       currentPinned.remove(packageName)
@@ -186,15 +257,4 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     _uiState.update { it.copy(allApps = updatedAll, pinnedApps = updatedPinned) }
   }
 
-  fun selectWallpaper(wallpaper: WallpaperItem) {
-    prefs.setWallpaperId(wallpaper.id)
-    prefs.setCustomWallpaperUrl(null)
-    _uiState.update { it.copy(currentWallpaperId = wallpaper.id, customWallpaperUrl = null) }
-  }
-
-  fun setCustomWallpaperUrl(url: String) {
-    prefs.setWallpaperId("custom_url")
-    prefs.setCustomWallpaperUrl(url)
-    _uiState.update { it.copy(currentWallpaperId = "custom_url", customWallpaperUrl = url) }
-  }
 }

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Locale
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.MoonPhaseInfo
 import com.example.ui.theme.NeonAmber
@@ -199,7 +202,7 @@ fun MoonPhaseWidget(
         }
       }
 
-      // Astronomical Calendar details
+      // Compact next-phase summary
       Column(
         modifier = Modifier
           .fillMaxWidth()
@@ -211,16 +214,26 @@ fun MoonPhaseWidget(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(text = "Próx. Luna Llena:", color = TvTextSecondary, fontSize = 9.sp)
-          Text(text = moonInfo.nextFullMoonDate, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+          Text(text = "Próxima fase:", color = TvTextSecondary, fontSize = 9.sp)
+          Text(
+            text = nextMoonPhase(moonInfo).first,
+            color = NeonAmber,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+          )
         }
         Spacer(modifier = Modifier.height(2.dp))
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(text = "Salida / Puesta:", color = TvTextSecondary, fontSize = 9.sp)
-          Text(text = "${moonInfo.moonrise} / ${moonInfo.moonset}", color = NeonAmber, fontSize = 9.sp)
+          Text(text = "Fecha estimada:", color = TvTextSecondary, fontSize = 9.sp)
+          Text(
+            text = nextMoonPhase(moonInfo).second,
+            color = Color.White,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+          )
         }
       }
     }
@@ -228,6 +241,7 @@ fun MoonPhaseWidget(
 
   // Astronomical modal when user presses OK / selects the Moon Widget
   if (showDetailsDialog) {
+    BackHandler(enabled = true) { showDetailsDialog = false }
     TvModalOverlay(onDismiss = { showDetailsDialog = false }) {
       Surface(
         modifier = Modifier
@@ -269,6 +283,13 @@ fun MoonPhaseWidget(
 
           Spacer(modifier = Modifier.height(12.dp))
 
+          Text(
+            text = "Calendario de fases",
+            color = NeonAmber,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+          )
+          Spacer(modifier = Modifier.height(6.dp))
           Column(
             modifier = Modifier
               .fillMaxWidth()
@@ -276,14 +297,20 @@ fun MoonPhaseWidget(
               .background(Color.Black.copy(alpha = 0.35f))
               .padding(12.dp)
           ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-              Text(text = "Próxima Luna Llena:", color = TvTextSecondary, fontSize = 11.sp)
-              Text(text = moonInfo.nextFullMoonDate, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
+            MoonPhaseDateRow("Cuarto creciente", nextPhaseDate(moonInfo.ageDays, 7.38))
+            MoonPhaseDateRow("Luna llena", moonInfo.nextFullMoonDate)
+            MoonPhaseDateRow("Cuarto menguante", nextPhaseDate(moonInfo.ageDays, 22.15))
+            MoonPhaseDateRow("Luna nueva", moonInfo.nextNewMoonDate)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+              text = "Las fechas de los cuartos son estimaciones calculadas a partir del ciclo lunar; pueden variar aproximadamente un día.",
+              color = TvTextSecondary,
+              fontSize = 10.sp
+            )
             Spacer(modifier = Modifier.height(6.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-              Text(text = "Próxima Luna Nueva:", color = TvTextSecondary, fontSize = 11.sp)
-              Text(text = moonInfo.nextNewMoonDate, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+              Text(text = "Salida / puesta:", color = TvTextSecondary, fontSize = 11.sp)
+              Text(text = "${moonInfo.moonrise} / ${moonInfo.moonset}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(6.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -295,4 +322,44 @@ fun MoonPhaseWidget(
       }
     }
   }
+}
+
+
+private const val SYNODIC_MONTH_DAYS = 29.53059
+
+private fun nextPhaseDate(currentAgeDays: Double, targetAgeDays: Double): String {
+  var daysUntil = (targetAgeDays - currentAgeDays + SYNODIC_MONTH_DAYS) % SYNODIC_MONTH_DAYS
+  if (daysUntil < 0.5) daysUntil += SYNODIC_MONTH_DAYS
+  val date = java.util.Calendar.getInstance()
+  date.add(java.util.Calendar.DAY_OF_YEAR, kotlin.math.ceil(daysUntil).toInt())
+  return SimpleDateFormat("d MMM yyyy", Locale("es", "ES")).format(date.time)
+}
+
+private fun nextMoonPhase(moonInfo: MoonPhaseInfo): Pair<String, String> {
+  val phases = listOf(
+    Triple("Cuarto creciente", 7.38, ""),
+    Triple("Luna llena", 14.765, moonInfo.nextFullMoonDate),
+    Triple("Cuarto menguante", 22.15, ""),
+    Triple("Luna nueva", 0.0, moonInfo.nextNewMoonDate)
+  )
+  val next = phases.minByOrNull { (_, targetAge, _) ->
+    var days = (targetAge - moonInfo.ageDays + SYNODIC_MONTH_DAYS) % SYNODIC_MONTH_DAYS
+    if (days < 0.5) days += SYNODIC_MONTH_DAYS
+    days
+  } ?: phases.first()
+  val date = next.third.ifBlank { nextPhaseDate(moonInfo.ageDays, next.second) }
+  return next.first to date
+}
+
+@Composable
+private fun MoonPhaseDateRow(label: String, date: String) {
+  Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.SpaceBetween,
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Text(text = label, color = TvTextSecondary, fontSize = 11.sp)
+    Text(text = date, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+  }
+  Spacer(modifier = Modifier.height(6.dp))
 }

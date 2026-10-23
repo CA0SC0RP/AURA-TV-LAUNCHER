@@ -25,47 +25,45 @@ class AppManagerRepository(private val context: Context) {
 
   fun getInstalledApps(pinnedPackageNames: Set<String>): List<AppItem> {
     val pm = context.packageManager
-    val installedList = mutableListOf<AppItem>()
+    val installedByPackage = linkedMapOf<String, AppItem>()
 
-    try {
-      val intent = Intent(Intent.ACTION_MAIN, null).apply {
-        addCategory(Intent.CATEGORY_LAUNCHER)
-      }
-      val activities = pm.queryIntentActivities(intent, 0)
-      for (ri in activities) {
-        val pkg = ri.activityInfo.packageName
-        if (pkg == context.packageName) continue // don't list ourselves
-        val label = ri.loadLabel(pm).toString()
-        val icon = ri.loadIcon(pm)
-        val isPinned = pinnedPackageNames.contains(pkg)
+    // Android TV apps may expose LEANBACK_LAUNCHER instead of the phone-style LAUNCHER category.
+    val launcherCategories = listOf(
+      Intent.CATEGORY_LEANBACK_LAUNCHER,
+      Intent.CATEGORY_LAUNCHER
+    )
 
-        installedList.add(
-          AppItem(
+    for (category in launcherCategories) {
+      try {
+        val intent = Intent(Intent.ACTION_MAIN, null).apply {
+          addCategory(category)
+        }
+        val activities = pm.queryIntentActivities(intent, 0)
+        for (ri in activities) {
+          val pkg = ri.activityInfo.packageName
+          if (pkg == context.packageName || installedByPackage.containsKey(pkg)) continue
+
+          val preset = presetApps.firstOrNull { it.packageName == pkg }
+          val isSystemApp = (ri.activityInfo.applicationInfo.flags and
+            android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
+
+          installedByPackage[pkg] = AppItem(
             packageName = pkg,
-            label = label,
-            icon = icon,
-            isPinned = isPinned,
-            isSystemApp = false,
-            category = "Instalada"
+            label = ri.loadLabel(pm).toString(),
+            icon = ri.loadIcon(pm),
+            isPinned = pinnedPackageNames.contains(pkg),
+            isSystemApp = isSystemApp,
+            category = preset?.category ?: if (isSystemApp) "Sistema" else "Instalada",
+            defaultIconType = preset?.defaultIconType ?: "default"
           )
-        )
-      }
-    } catch (e: Exception) {
-      // ignore
-    }
-
-    // Merge preset apps if not already in installedList so user can pin/test them
-    val existingPkgs = installedList.map { it.packageName }.toSet()
-    val combined = installedList.toMutableList()
-
-    for (preset in presetApps) {
-      if (!existingPkgs.contains(preset.packageName)) {
-        val isPinned = pinnedPackageNames.contains(preset.packageName) || (pinnedPackageNames.isEmpty() && preset.isPinned)
-        combined.add(preset.copy(isPinned = isPinned))
+        }
+      } catch (_: Exception) {
+        // Continue with the other launcher category if this query is unavailable.
       }
     }
 
-    return combined
+    // Only return apps actually found on the device; do not show fictional preset entries.
+    return installedByPackage.values.toList()
   }
 
   fun launchApp(packageName: String): Boolean {

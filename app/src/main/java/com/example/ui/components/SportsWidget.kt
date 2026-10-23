@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,24 +15,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sports
 import androidx.compose.material.icons.filled.SportsBasketball
-import androidx.compose.material.icons.filled.SportsMotorsports
-import androidx.compose.material.icons.filled.SportsSoccer
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,401 +41,192 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.data.model.SportCategory
 import com.example.data.model.SportsEvent
-import com.example.data.repository.SportsRepository
 import com.example.ui.theme.NeonAmber
-import com.example.ui.theme.NeonBlue
 import com.example.ui.theme.NeonGreen
-import com.example.ui.theme.NeonRose
-import com.example.ui.theme.TvBorder
-import com.example.ui.theme.TvBorderFocused
 import com.example.ui.theme.TvSurface
 import com.example.ui.theme.TvSurfaceElevated
 import com.example.ui.theme.TvTextPrimary
 import com.example.ui.theme.TvTextSecondary
+
+private val sportFilters = listOf("Todos", "NBA", "Fútbol", "Fórmula 1", "NFL")
 
 @Composable
 fun SportsWidget(
   sportsEvents: List<SportsEvent>,
   selectedFilter: String,
   onFilterChange: (String) -> Unit,
-  onAddCustomSport: (String, String, String, String, String, String) -> Unit,
+  favoriteTeams: Set<String>,
+  onToggleFavoriteTeam: (String) -> Unit,
   modifier: Modifier = Modifier
 ) {
-  var showSearchDialog by remember { mutableStateOf(false) }
+  var showDetails by remember { mutableStateOf(false) }
+  val favoriteFiltered = if (favoriteTeams.isEmpty()) sportsEvents else sportsEvents.filter {
+    it.sport == "Fórmula 1" || it.teamHome in favoriteTeams || it.teamAway in favoriteTeams
+  }
+  val visibleEvents = if (selectedFilter.equals("Todos", true)) favoriteFiltered
+    else favoriteFiltered.filter { it.sport.equals(selectedFilter, true) }
 
-  val categories = listOf("Todos", "NBA", "Fútbol", "Fórmula 1", "Béisbol", "NFL", "Tenis")
-
-  TvCard(
-    modifier = modifier,
-    backgroundColor = TvSurface.copy(alpha = 0.82f),
-    focusedBorderColor = NeonGreen
+  Surface(
+    modifier = modifier.clickable { showDetails = true },
+    shape = RoundedCornerShape(14.dp),
+    color = TvSurface.copy(alpha = 0.84f),
+    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.10f))
   ) {
     Column(
-      modifier = Modifier
-        .fillMaxSize()
-        .padding(10.dp)
+      modifier = Modifier.fillMaxSize().padding(10.dp),
+      verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-      // Header & Search / Add button
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
       ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-          Icon(
-            imageVector = Icons.Default.SportsBasketball,
-            contentDescription = null,
-            tint = NeonGreen,
-            modifier = Modifier.size(18.dp)
-          )
-          Spacer(modifier = Modifier.width(6.dp))
-          Text(
-            text = "Deportes & NBA",
-            color = TvTextPrimary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold
-          )
+          Icon(Icons.Default.SportsBasketball, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(17.dp))
+          Spacer(Modifier.width(6.dp))
+          Text("DEPORTES", color = TvTextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
-
-        Box(
-          modifier = Modifier
-            .size(24.dp)
-            .clip(androidx.compose.foundation.shape.CircleShape)
-            .background(NeonGreen.copy(alpha = 0.25f))
-            .clickable { showSearchDialog = true },
-          contentAlignment = Alignment.Center
-        ) {
-          Icon(Icons.Default.Search, contentDescription = "Buscar o añadir deporte", tint = NeonGreen, modifier = Modifier.size(13.dp))
-        }
+        Icon(Icons.Default.CalendarMonth, contentDescription = "Abrir calendario deportivo", tint = NeonGreen, modifier = Modifier.size(17.dp))
       }
 
-      Spacer(modifier = Modifier.height(8.dp))
-
-      // Category Chips
-      LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-      ) {
-        items(categories) { cat ->
-          val isSelected = selectedFilter.equals(cat, ignoreCase = true)
+      Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        sportFilters.drop(1).forEach { sport ->
           Box(
-            modifier = Modifier
-              .clip(RoundedCornerShape(6.dp))
-              .background(if (isSelected) NeonGreen.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.35f))
-              .clickable { onFilterChange(cat) }
-              .padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.clip(RoundedCornerShape(5.dp))
+              .background(if (selectedFilter.equals(sport, true)) NeonGreen.copy(alpha = 0.24f) else Color.Black.copy(alpha = 0.25f))
+              .clickable { onFilterChange(if (selectedFilter.equals(sport, true)) "Todos" else sport) }
+              .padding(horizontal = 5.dp, vertical = 4.dp)
           ) {
-            Text(
-              text = cat,
-              color = if (isSelected) NeonGreen else TvTextSecondary,
-              fontSize = 10.sp,
-              fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-            )
+            Text(sport, color = if (selectedFilter.equals(sport, true)) NeonGreen else TvTextSecondary, fontSize = 8.sp, maxLines = 1)
           }
         }
       }
 
-      Spacer(modifier = Modifier.height(8.dp))
-
-      // Events list
-      if (sportsEvents.isEmpty()) {
-        Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          contentAlignment = Alignment.Center
-        ) {
-          Text(
-            text = "No hay eventos para '$selectedFilter'",
-            color = TvTextSecondary,
-            fontSize = 11.sp
-          )
+      if (visibleEvents.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+          Text("Sin eventos disponibles\nPulsa para consultar la agenda", color = TvTextSecondary, fontSize = 10.sp)
         }
       } else {
-        LazyColumn(
-          modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-          items(sportsEvents.take(4)) { event ->
-            SportsEventRow(event)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+          visibleEvents.take(3).forEach { event ->
+            Column(
+              modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(7.dp))
+                .background(Color.Black.copy(alpha = 0.28f)).padding(7.dp)
+            ) {
+              Text(event.sport.uppercase(), color = NeonGreen, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+              Text(
+                text = if (event.sport == "Fórmula 1") event.teamHome else "${event.teamHome} vs ${event.teamAway}",
+                color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
+              )
+              Text(event.airDateTime, color = NeonAmber, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
           }
+          Text("Abrir calendario completo", color = TvTextSecondary, fontSize = 9.sp)
         }
       }
     }
   }
 
-  // Dialog to enter custom sport or team
-  if (showSearchDialog) {
-    SearchSportDialog(
-      onDismiss = { showSearchDialog = false },
-      onFilterSelected = { sportName ->
-        onFilterChange(sportName)
-        showSearchDialog = false
-      },
-      onAddCustom = { sport, tourney, home, away, time, channel ->
-        onAddCustomSport(sport, tourney, home, away, time, channel)
-        showSearchDialog = false
-      }
-    )
-  }
-}
-
-@Composable
-fun SportsEventRow(event: SportsEvent) {
-  Column(
-    modifier = Modifier
-      .fillMaxWidth()
-      .clip(RoundedCornerShape(8.dp))
-      .background(Color.Black.copy(alpha = 0.25f))
-      .padding(8.dp)
-  ) {
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Text(
-        text = event.tournament,
-        color = NeonGreen,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
-      )
-
-      Box(
-        modifier = Modifier
-          .clip(RoundedCornerShape(4.dp))
-          .background(Color(0xFFEF4444).copy(alpha = 0.2f))
-          .padding(horizontal = 4.dp, vertical = 1.dp)
+  if (showDetails) {
+    BackHandler { showDetails = false }
+    Dialog(onDismissRequest = { showDetails = false }) {
+      Surface(
+        modifier = Modifier.fillMaxWidth(0.94f).height(500.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = TvSurfaceElevated,
+        border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen.copy(alpha = 0.65f))
       ) {
-        Text(
-          text = event.status,
-          color = Color(0xFFF87171),
-          fontSize = 9.sp,
-          fontWeight = FontWeight.Bold
-        )
+        Column(Modifier.fillMaxSize().padding(18.dp)) {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Column {
+              Text("AGENDA DEPORTIVA", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+              Text(
+            if (favoriteTeams.isEmpty()) "Próximos eventos · hora local · elige favoritos con ★"
+            else "Favoritos: ${favoriteTeams.size} · hora local",
+            color = TvTextSecondary, fontSize = 11.sp
+          )
+            }
+            IconButton(onClick = { showDetails = false }) {
+              Icon(Icons.Default.Close, contentDescription = "Cerrar calendario", tint = Color.White)
+            }
+          }
+
+          Spacer(Modifier.height(8.dp))
+          Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            sportFilters.forEach { sport ->
+              Box(
+                modifier = Modifier.clip(RoundedCornerShape(7.dp))
+                  .background(if (selectedFilter.equals(sport, true)) NeonGreen.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.30f))
+                  .clickable { onFilterChange(sport) }
+                  .padding(horizontal = 10.dp, vertical = 7.dp)
+              ) {
+                Text(sport, color = if (selectedFilter.equals(sport, true)) NeonGreen else TvTextSecondary, fontSize = 10.sp)
+              }
+            }
+          }
+          Spacer(Modifier.height(10.dp))
+          val detailEvents = if (selectedFilter.equals("Todos", true)) sportsEvents
+            else sportsEvents.filter { it.sport.equals(selectedFilter, true) }
+          if (detailEvents.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+              Text("No hay próximos eventos disponibles.\nComprueba la conexión más tarde.", color = TvTextSecondary, fontSize = 13.sp)
+            }
+          } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+              items(detailEvents) { event ->
+                SportsDetailRow(event, favoriteTeams, onToggleFavoriteTeam)
+              }
+            }
+          }
+        }
       }
-    }
-
-    Spacer(modifier = Modifier.height(2.dp))
-
-    Text(
-      text = "${event.teamHome} vs ${event.teamAway}",
-      color = Color.White,
-      fontSize = 11.sp,
-      fontWeight = FontWeight.SemiBold,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis
-    )
-
-    Spacer(modifier = Modifier.height(3.dp))
-
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-          imageVector = Icons.Default.LiveTv,
-          contentDescription = null,
-          tint = NeonAmber,
-          modifier = Modifier.size(11.dp)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-          text = event.broadcaster,
-          color = TvTextSecondary,
-          fontSize = 9.sp,
-          maxLines = 1
-        )
-      }
-
-      Text(
-        text = event.airDateTime,
-        color = NeonAmber,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold
-      )
     }
   }
 }
 
 @Composable
-fun SearchSportDialog(
-  onDismiss: () -> Unit,
-  onFilterSelected: (String) -> Unit,
-  onAddCustom: (String, String, String, String, String, String) -> Unit
+private fun SportsDetailRow(
+  event: SportsEvent,
+  favoriteTeams: Set<String>,
+  onToggleFavoriteTeam: (String) -> Unit
 ) {
-  var searchQuery by remember { mutableStateOf("") }
-  var isAddingMode by remember { mutableStateOf(false) }
-
-  // Custom fields
-  var customSport by remember { mutableStateOf("Fútbol") }
-  var customTourney by remember { mutableStateOf("") }
-  var customHome by remember { mutableStateOf("") }
-  var customAway by remember { mutableStateOf("") }
-  var customTime by remember { mutableStateOf("") }
-  var customChannel by remember { mutableStateOf("ESPN") }
-
-  TvModalOverlay(onDismiss = onDismiss) {
-    Surface(
-      modifier = Modifier
-        .width(420.dp),
-      shape = RoundedCornerShape(16.dp),
-      color = TvSurfaceElevated,
-      border = androidx.compose.foundation.BorderStroke(1.dp, TvBorderFocused)
-    ) {
-      Column(modifier = Modifier.padding(20.dp)) {
+  Column(
+    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+      .background(Color.Black.copy(alpha = 0.28f)).padding(12.dp),
+    verticalArrangement = Arrangement.spacedBy(4.dp)
+  ) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+      Text(event.sport.uppercase(), color = NeonGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+      Text(event.status, color = if (event.isLive) Color(0xFFFF6565) else NeonAmber, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+    if (event.sport == "Fórmula 1") {
+      Text(event.teamHome, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+    } else {
+      listOf(event.teamHome, event.teamAway).forEach { team ->
         Row(
           modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(
-            text = if (isAddingMode) "Programar Deporte en TV" else "Buscar Deporte o Equipo",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
-          )
-          IconButton(onClick = onDismiss) {
-            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TvTextSecondary)
-          }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        if (!isAddingMode) {
-          Text(
-            text = "Escribe el deporte o equipo que deseas consultar (ej. 'Fórmula 1', 'Lakers', 'Real Madrid', 'Béisbol'):",
-            color = TvTextSecondary,
-            fontSize = 12.sp
-          )
-
-          Spacer(modifier = Modifier.height(12.dp))
-
-          OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Ej. F1, NBA, UFC, Boca...") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-              focusedBorderColor = NeonGreen,
-              unfocusedBorderColor = TvBorder,
-              focusedTextColor = Color.White,
-              unfocusedTextColor = Color.White
+          Text(team, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+          IconButton(onClick = { onToggleFavoriteTeam(team) }) {
+            Icon(
+              imageVector = if (team in favoriteTeams) Icons.Default.Star else Icons.Default.StarBorder,
+              contentDescription = if (team in favoriteTeams) "Quitar favorito" else "Añadir favorito",
+              tint = if (team in favoriteTeams) NeonAmber else TvTextSecondary
             )
-          )
-
-          Spacer(modifier = Modifier.height(16.dp))
-
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-          ) {
-            Button(
-              onClick = { isAddingMode = true },
-              colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-              border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen)
-            ) {
-              Text("+ Programar Nuevo", color = NeonGreen)
-            }
-
-            Button(
-              onClick = {
-                if (searchQuery.isNotBlank()) onFilterSelected(searchQuery)
-              },
-              colors = ButtonDefaults.buttonColors(containerColor = NeonGreen)
-            ) {
-              Text("Filtrar", color = Color.Black, fontWeight = FontWeight.Bold)
-            }
-          }
-        } else {
-          // Add custom schedule mode
-          OutlinedTextField(
-            value = customSport,
-            onValueChange = { customSport = it },
-            label = { Text("Deporte (Fútbol, F1, Boxeo...)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-          )
-          Spacer(modifier = Modifier.height(6.dp))
-          OutlinedTextField(
-            value = customTourney,
-            onValueChange = { customTourney = it },
-            label = { Text("Torneo o Liga") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-          )
-          Spacer(modifier = Modifier.height(6.dp))
-          Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-              value = customHome,
-              onValueChange = { customHome = it },
-              label = { Text("Equipo / Jugador 1") },
-              modifier = Modifier.weight(1f),
-              singleLine = true
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            OutlinedTextField(
-              value = customAway,
-              onValueChange = { customAway = it },
-              label = { Text("Equipo / Jugador 2") },
-              modifier = Modifier.weight(1f),
-              singleLine = true
-            )
-          }
-          Spacer(modifier = Modifier.height(6.dp))
-          Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-              value = customTime,
-              onValueChange = { customTime = it },
-              label = { Text("Día y Hora (ej. Sábado 20:00)") },
-              modifier = Modifier.weight(1f),
-              singleLine = true
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            OutlinedTextField(
-              value = customChannel,
-              onValueChange = { customChannel = it },
-              label = { Text("Canal de TV (ej. DAZN)") },
-              modifier = Modifier.weight(1f),
-              singleLine = true
-            )
-          }
-
-          Spacer(modifier = Modifier.height(14.dp))
-
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-          ) {
-            Button(
-              onClick = {
-                if (customHome.isNotBlank()) {
-                  onAddCustom(
-                    customSport,
-                    customTourney.ifBlank { "Torneo" },
-                    customHome,
-                    customAway.ifBlank { "Rival" },
-                    customTime.ifBlank { "Próximamente" },
-                    customChannel.ifBlank { "TV" }
-                  )
-                }
-              },
-              colors = ButtonDefaults.buttonColors(containerColor = NeonGreen)
-            ) {
-              Text("Guardar Evento", color = Color.Black, fontWeight = FontWeight.Bold)
-            }
           }
         }
       }
     }
+    Text(event.airDateTime, color = NeonAmber, fontSize = 12.sp)
+    Text(event.tournament, color = TvTextSecondary, fontSize = 11.sp)
+    event.venue?.let { Text("Sede: $it", color = TvTextSecondary, fontSize = 11.sp) }
   }
 }

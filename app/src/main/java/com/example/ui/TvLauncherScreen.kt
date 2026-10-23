@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
-import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -36,9 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,8 +54,8 @@ import com.example.ui.components.MoonPhaseWidget
 import com.example.ui.components.SportsWidget
 import com.example.ui.components.TvCard
 import com.example.ui.components.TvShowsWidget
-import com.example.ui.components.WallpaperPickerModal
 import com.example.ui.components.WeatherWidget
+import com.example.ui.components.WeatherSetupWidget
 import com.example.ui.theme.NeonBlue
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.TvTextSecondary
@@ -76,21 +72,6 @@ fun TvLauncherScreen(
   val uiState by viewModel.uiState.collectAsState()
   val context = LocalContext.current
 
-  var showWallpaperModal by remember { mutableStateOf(false) }
-  var currentTimeStr by remember { mutableStateOf("") }
-  var currentDateStr by remember { mutableStateOf("") }
-
-  // Update TV clock every 5 seconds
-  LaunchedEffect(Unit) {
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-    val dateFormat = SimpleDateFormat("EEEE, d 'de' MMMM", Locale("es", "ES"))
-    while (true) {
-      val now = Date()
-      currentTimeStr = timeFormat.format(now)
-      currentDateStr = dateFormat.format(now).replaceFirstChar { it.uppercase() }
-      delay(5000)
-    }
-  }
 
   Box(modifier = modifier.fillMaxSize()) {
     // 1. 4K Wallpaper Background
@@ -146,11 +127,8 @@ fun TvLauncherScreen(
             .background(Color.Black.copy(alpha = 0.35f))
             .padding(vertical = 4.dp)
         ) {
-          // Line 1: Status Bar
+          // Line 1: Status Bar (clock/date omitted; weather widget already provides them)
           TopTvStatusBar(
-            timeStr = currentTimeStr,
-            dateStr = currentDateStr,
-            onOpenWallpaper = { showWallpaperModal = true },
             onOpenSettings = {
               try {
                 val intent = Intent(Settings.ACTION_SETTINGS)
@@ -200,15 +178,14 @@ fun TvLauncherScreen(
               ) {
                 // Widget 1: Deportes / NBA
                 SportsWidget(
-                  sportsEvents = uiState.sportsEvents,
+                  sportsEvents = uiState.allSportsEvents,
                   selectedFilter = uiState.selectedSportFilter,
                   onFilterChange = { viewModel.setSportFilter(it) },
-                  onAddCustomSport = { s, tr, h, a, t, ch ->
-                    viewModel.addCustomSportEvent(s, tr, h, a, t, ch)
-                  },
+                  favoriteTeams = uiState.favoriteSportsTeams,
+                  onToggleFavoriteTeam = { viewModel.toggleFavoriteSportsTeam(it) },
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(0.85f)
                 )
 
                 // Widget 2: Videojuegos (Ticker informativo pasando poco a poco)
@@ -216,7 +193,7 @@ fun TvLauncherScreen(
                   newsList = uiState.gameNews,
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1.15f)
                 )
               }
 
@@ -264,23 +241,32 @@ fun TvLauncherScreen(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
               ) {
                 // Widget 1: Clima & Temperatura (día a día / por hora, buscador de país y código postal)
-                uiState.weatherData?.let { weather ->
+                if (uiState.weatherData != null) {
                   WeatherWidget(
-                    weather = weather,
+                    weather = uiState.weatherData!!,
                     onLocationChange = { viewModel.updateWeatherLocation(it) },
                     onToggleUnit = { viewModel.toggleWeatherUnit() },
+                    savedLocation = uiState.weatherLocation,
                     modifier = Modifier
                       .fillMaxWidth()
-                      .weight(1.1f)
+                      .height(210.dp)
+                  )
+                } else {
+                  WeatherSetupWidget(
+                    onLocationChange = { viewModel.updateWeatherLocation(it) },
+                    savedLocation = uiState.weatherLocation,
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .height(210.dp)
                   )
                 }
 
-                // Widget 2: Fase Lunar (debajo del clima / calendario)
+                // Widget 2: Fase Lunar (compacta, debajo del clima)
                 MoonPhaseWidget(
                   moonInfo = uiState.moonPhaseInfo,
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.9f)
+                    .height(130.dp)
                 )
               }
             }
@@ -308,10 +294,11 @@ fun TvLauncherScreen(
               // Left Widgets: Sports & Video Games
               Text(text = "Lado Izquierdo (Deportes & Juegos)", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
               SportsWidget(
-                sportsEvents = uiState.sportsEvents,
+                sportsEvents = uiState.allSportsEvents,
                 selectedFilter = uiState.selectedSportFilter,
                 onFilterChange = { viewModel.setSportFilter(it) },
-                onAddCustomSport = { s, tr, h, a, t, ch -> viewModel.addCustomSportEvent(s, tr, h, a, t, ch) },
+                favoriteTeams = uiState.favoriteSportsTeams,
+                onToggleFavoriteTeam = { viewModel.toggleFavoriteSportsTeam(it) },
                 modifier = Modifier
                   .fillMaxWidth()
                   .height(180.dp)
@@ -320,16 +307,25 @@ fun TvLauncherScreen(
                 newsList = uiState.gameNews,
                 modifier = Modifier
                   .fillMaxWidth()
-                  .height(160.dp)
+                  .height(250.dp)
               )
 
               // Right Widgets: Weather & Moon
               Text(text = "Lado Derecho (Clima & Fase Lunar)", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-              uiState.weatherData?.let { weather ->
+              if (uiState.weatherData != null) {
                 WeatherWidget(
-                  weather = weather,
+                  weather = uiState.weatherData!!,
                   onLocationChange = { viewModel.updateWeatherLocation(it) },
                   onToggleUnit = { viewModel.toggleWeatherUnit() },
+                  savedLocation = uiState.weatherLocation,
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                )
+              } else {
+                WeatherSetupWidget(
+                  onLocationChange = { viewModel.updateWeatherLocation(it) },
+                  savedLocation = uiState.weatherLocation,
                   modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
@@ -347,29 +343,11 @@ fun TvLauncherScreen(
       }
     }
 
-    // Wallpaper Customizer Modal
-    if (showWallpaperModal) {
-      WallpaperPickerModal(
-        currentWallpaperId = uiState.currentWallpaperId,
-        onDismiss = { showWallpaperModal = false },
-        onSelectWallpaper = { wp ->
-          viewModel.selectWallpaper(wp)
-          showWallpaperModal = false
-        },
-        onSetCustomUrl = { url ->
-          viewModel.setCustomWallpaperUrl(url)
-          showWallpaperModal = false
-        }
-      )
-    }
   }
 }
 
 @Composable
 fun TopTvStatusBar(
-  timeStr: String,
-  dateStr: String,
-  onOpenWallpaper: () -> Unit,
   onOpenSettings: () -> Unit,
   onRefresh: () -> Unit
 ) {
@@ -410,52 +388,11 @@ fun TopTvStatusBar(
       }
     }
 
-    // Center: Live Clock & Date
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      Text(
-        text = timeStr,
-        color = Color.White,
-        fontSize = 15.sp,
-        fontWeight = FontWeight.Bold
-      )
-      Spacer(modifier = Modifier.width(8.dp))
-      Text(
-        text = "•",
-        color = TvTextSecondary,
-        fontSize = 11.sp
-      )
-      Spacer(modifier = Modifier.width(8.dp))
-      Text(
-        text = dateStr,
-        color = TvTextSecondary,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Medium
-      )
-    }
-
     // Right: Action buttons
     Row(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-      TvCard(
-        onClick = onOpenWallpaper,
-        shape = RoundedCornerShape(8.dp),
-        backgroundColor = Color.White.copy(alpha = 0.1f),
-        focusedBorderColor = NeonCyan,
-        focusedScale = 1.08f,
-        elevation = 2.dp
-      ) {
-        Row(
-          modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Icon(Icons.Default.Wallpaper, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(13.dp))
-          Spacer(modifier = Modifier.width(4.dp))
-          Text(text = "Fondo 4K", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-        }
-      }
-
       TvCard(
         onClick = onRefresh,
         shape = CircleShape,
@@ -494,11 +431,11 @@ fun WallpaperBackground(
     if (!customUrl.isNullOrBlank()) {
       AsyncImage(
         model = customUrl,
-        contentDescription = "Fondo 4K Personalizado",
+        contentDescription = "Fondo espacial automático",
         modifier = Modifier.fillMaxSize(),
         contentScale = ContentScale.Crop
       )
-    } else if (wallpaperId == "cosmic_nebula") {
+    } else if (wallpaperId == "cosmic_nebula" || wallpaperId == "space_auto") {
       Image(
         painter = painterResource(id = R.drawable.wallpaper_cosmic_4k_1792767721304),
         contentDescription = "Nebulosa Cósmica 4K",
