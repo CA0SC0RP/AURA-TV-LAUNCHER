@@ -50,10 +50,10 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
 
       val weatherReq = Request.Builder().url(weatherUrl).build()
       val weatherResp = client.newCall(weatherReq).execute()
-      val weatherBody = weatherResp.body?.string() ?: return@withContext fallbackWeather
+      val weatherBody = weatherResp.body?.string() ?: return@withContext null
 
       val weatherJson = JSONObject(weatherBody)
-      val current = weatherJson.optJSONObject("current") ?: return@withContext fallbackWeather
+      val current = weatherJson.optJSONObject("current") ?: return@withContext null
       val hourly = weatherJson.optJSONObject("hourly")
       val daily = weatherJson.optJSONObject("daily")
 
