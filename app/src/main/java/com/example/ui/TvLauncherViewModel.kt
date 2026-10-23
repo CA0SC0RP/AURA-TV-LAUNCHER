@@ -8,7 +8,6 @@ import com.example.data.model.GameNewsItem
 import com.example.data.model.MoonPhaseInfo
 import com.example.data.model.SportsEvent
 import com.example.data.model.TvSeries
-import com.example.data.model.WallpaperItem
 import com.example.data.model.WeatherData
 import com.example.data.repository.AppManagerRepository
 import com.example.data.repository.GameNewsRepository
@@ -17,6 +16,7 @@ import com.example.data.repository.MoonCalculator
 import com.example.data.repository.SportsRepository
 import com.example.data.repository.TvMazeRepository
 import com.example.data.repository.WeatherRepository
+import com.example.data.repository.WallpaperRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,11 +51,12 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
   private val sportsRepo = SportsRepository()
   private val gameNewsRepo = GameNewsRepository()
   private val appManagerRepo = AppManagerRepository(application)
+  private val wallpaperRepo = WallpaperRepository(application)
 
   private val _uiState = MutableStateFlow(
     TvLauncherUiState(
-      currentWallpaperId = prefs.getWallpaperId(),
-      customWallpaperUrl = prefs.getCustomWallpaperUrl(),
+      currentWallpaperId = "space_auto",
+      customWallpaperUrl = wallpaperRepo.cachedWallpaperUri(),
       isFahrenheit = prefs.isFahrenheit(),
       weatherLocation = prefs.getWeatherLocation(),
       selectedSportFilter = prefs.getSportFilter(),
@@ -74,6 +75,12 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
         delay(TimeUnit.MINUTES.toMillis(30))
         refreshGameNews()
         refreshSports()
+      }
+    }
+    viewModelScope.launch {
+      while (true) {
+        delay(WallpaperRepository.ROTATION_INTERVAL_MS)
+        refreshSpaceWallpaper(force = true)
       }
     }
   }
@@ -125,13 +132,37 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
         )
       }
 
-      // Fetch RSS and sports schedules in the background.
+      // Fetch RSS, sports, and the automatic space wallpaper in the background.
       refreshGameNews()
       refreshSports()
+      refreshSpaceWallpaper(force = false)
 
       // Fetch live weather in background
       val savedLocation = prefs.getWeatherLocation().trim()
       if (savedLocation.isNotEmpty()) refreshWeather(savedLocation, prefs.isFahrenheit())
+    }
+  }
+
+  private fun refreshSpaceWallpaper(force: Boolean) {
+    val cachedUri = wallpaperRepo.cachedWallpaperUri()
+    val elapsed = System.currentTimeMillis() - wallpaperRepo.lastUpdatedAt()
+    val isDue = cachedUri == null || wallpaperRepo.lastUpdatedAt() == 0L ||
+      elapsed >= WallpaperRepository.ROTATION_INTERVAL_MS
+    if (!force && !isDue) {
+      if (_uiState.value.customWallpaperUrl != cachedUri) {
+        _uiState.update { it.copy(currentWallpaperId = "space_auto", customWallpaperUrl = cachedUri) }
+      }
+      return
+    }
+    viewModelScope.launch {
+      val downloaded = wallpaperRepo.downloadNewWallpaper()
+      // A failed request leaves the previous cached image visible.
+      val uriToShow = downloaded?.uri ?: wallpaperRepo.cachedWallpaperUri()
+      if (uriToShow != null) {
+        _uiState.update {
+          it.copy(currentWallpaperId = "space_auto", customWallpaperUrl = uriToShow)
+        }
+      }
     }
   }
 
@@ -239,15 +270,4 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     _uiState.update { it.copy(allApps = updatedAll, pinnedApps = updatedPinned) }
   }
 
-  fun selectWallpaper(wallpaper: WallpaperItem) {
-    prefs.setWallpaperId(wallpaper.id)
-    prefs.setCustomWallpaperUrl(null)
-    _uiState.update { it.copy(currentWallpaperId = wallpaper.id, customWallpaperUrl = null) }
-  }
-
-  fun setCustomWallpaperUrl(url: String) {
-    prefs.setWallpaperId("custom_url")
-    prefs.setCustomWallpaperUrl(url)
-    _uiState.update { it.copy(currentWallpaperId = "custom_url", customWallpaperUrl = url) }
-  }
 }
