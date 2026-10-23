@@ -201,7 +201,7 @@ fun TvLauncherScreen(
               ) {
                 // Widget 1: Deportes / NBA
                 SportsWidget(
-                  sportsEvents = uiState.sportsEvents,
+                  sportsEvents = uiState.allSportsEvents,
                   selectedFilter = uiState.selectedSportFilter,
                   onFilterChange = { viewModel.setSportFilter(it) },
                   onAddCustomSport = { s, tr, h, a, t, ch ->
@@ -318,7 +318,7 @@ fun TvLauncherScreen(
               // Left Widgets: Sports & Video Games
               Text(text = "Lado Izquierdo (Deportes & Juegos)", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
               SportsWidget(
-                sportsEvents = uiState.sportsEvents,
+                sportsEvents = uiState.allSportsEvents,
                 selectedFilter = uiState.selectedSportFilter,
                 onFilterChange = { viewModel.setSportFilter(it) },
                 onAddCustomSport = { s, tr, h, a, t, ch -> viewModel.addCustomSportEvent(s, tr, h, a, t, ch) },
