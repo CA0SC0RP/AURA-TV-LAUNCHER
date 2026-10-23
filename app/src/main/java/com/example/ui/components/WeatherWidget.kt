@@ -757,14 +757,14 @@ fun WeatherSetupWidget(
       )
       Spacer(modifier = Modifier.height(8.dp))
       Text(
-        text = "Configurar clima",
+        text = if (savedLocation.isBlank()) "Configurar clima" else "Clima no disponible",
         color = Color.White,
         fontSize = 13.sp,
         fontWeight = FontWeight.Bold
       )
       Spacer(modifier = Modifier.height(4.dp))
       Text(
-        text = "País y código postal",
+        text = if (savedLocation.isBlank()) "Introduce país y código postal" else "Revisar ubicación o reintentar",
         color = TvTextSecondary,
         fontSize = 10.sp
       )
