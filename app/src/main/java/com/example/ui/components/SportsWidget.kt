@@ -21,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.SportsBasketball
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -55,11 +57,16 @@ fun SportsWidget(
   selectedFilter: String,
   onFilterChange: (String) -> Unit,
   onAddCustomSport: (String, String, String, String, String, String) -> Unit,
+  favoriteTeams: Set<String>,
+  onToggleFavoriteTeam: (String) -> Unit,
   modifier: Modifier = Modifier
 ) {
   var showDetails by remember { mutableStateOf(false) }
-  val visibleEvents = if (selectedFilter.equals("Todos", true)) sportsEvents
-    else sportsEvents.filter { it.sport.equals(selectedFilter, true) }
+  val favoriteFiltered = if (favoriteTeams.isEmpty()) sportsEvents else sportsEvents.filter {
+    it.sport == "Fórmula 1" || it.teamHome in favoriteTeams || it.teamAway in favoriteTeams
+  }
+  val visibleEvents = if (selectedFilter.equals("Todos", true)) favoriteFiltered
+    else favoriteFiltered.filter { it.sport.equals(selectedFilter, true) }
 
   Surface(
     modifier = modifier.clickable { showDetails = true },
@@ -140,7 +147,11 @@ fun SportsWidget(
           ) {
             Column {
               Text("AGENDA DEPORTIVA", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-              Text("Próximos eventos · hora local", color = TvTextSecondary, fontSize = 11.sp)
+              Text(
+            if (favoriteTeams.isEmpty()) "Próximos eventos · hora local · elige favoritos con ★"
+            else "Favoritos: ${favoriteTeams.size} · hora local",
+            color = TvTextSecondary, fontSize = 11.sp
+          )
             }
             IconButton(onClick = { showDetails = false }) {
               Icon(Icons.Default.Close, contentDescription = "Cerrar calendario", tint = Color.White)
@@ -169,7 +180,9 @@ fun SportsWidget(
             }
           } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-              items(detailEvents) { event -> SportsDetailRow(event) }
+              items(detailEvents) { event ->
+                SportsDetailRow(event, favoriteTeams, onToggleFavoriteTeam)
+              }
             }
           }
         }
@@ -179,7 +192,11 @@ fun SportsWidget(
 }
 
 @Composable
-private fun SportsDetailRow(event: SportsEvent) {
+private fun SportsDetailRow(
+  event: SportsEvent,
+  favoriteTeams: Set<String>,
+  onToggleFavoriteTeam: (String) -> Unit
+) {
   Column(
     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
       .background(Color.Black.copy(alpha = 0.28f)).padding(12.dp),
@@ -189,10 +206,26 @@ private fun SportsDetailRow(event: SportsEvent) {
       Text(event.sport.uppercase(), color = NeonGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
       Text(event.status, color = if (event.isLive) Color(0xFFFF6565) else NeonAmber, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
-    Text(
-      if (event.sport == "Fórmula 1") event.teamHome else "${event.teamHome} vs ${event.teamAway}",
-      color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold
-    )
+    if (event.sport == "Fórmula 1") {
+      Text(event.teamHome, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+    } else {
+      listOf(event.teamHome, event.teamAway).forEach { team ->
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+          Text(team, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+          IconButton(onClick = { onToggleFavoriteTeam(team) }) {
+            Icon(
+              imageVector = if (team in favoriteTeams) Icons.Default.Star else Icons.Default.StarBorder,
+              contentDescription = if (team in favoriteTeams) "Quitar favorito" else "Añadir favorito",
+              tint = if (team in favoriteTeams) NeonAmber else TvTextSecondary
+            )
+          }
+        }
+      }
+    }
     Text(event.airDateTime, color = NeonAmber, fontSize = 12.sp)
     Text(event.tournament, color = TvTextSecondary, fontSize = 11.sp)
     event.venue?.let { Text("Sede: $it", color = TvTextSecondary, fontSize = 11.sp) }
