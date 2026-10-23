@@ -30,6 +30,7 @@ data class TvLauncherUiState(
   val weatherData: WeatherData? = null,
   val moonPhaseInfo: MoonPhaseInfo = MoonCalculator.calculate(),
   val sportsEvents: List<SportsEvent> = emptyList(),
+  val allSportsEvents: List<SportsEvent> = emptyList(),
   val selectedSportFilter: String = "Todos",
   val gameNews: List<GameNewsItem> = emptyList(),
   val pinnedApps: List<AppItem> = emptyList(),
@@ -70,6 +71,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       while (true) {
         delay(TimeUnit.MINUTES.toMillis(30))
         refreshGameNews()
+        refreshSports()
       }
     }
   }
@@ -99,9 +101,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       val installed = discoveredApps.map { it.copy(isPinned = it.packageName in pinnedPackages) }
       val pinned = installed.filter { it.isPinned }
 
-      // 3. Sports & Games
-      val sports = sportsRepo.getEventsBySport(prefs.getSportFilter())
-      // RSS is fetched after the initial screen state is rendered, so a slow feed cannot hold up the launcher.
+      // Sports calendars are fetched after the first screen state to avoid delaying launcher startup.
 
       // 4. Moon
       val moon = MoonCalculator.calculate()
@@ -114,7 +114,8 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
           seriesList = initialSeries,
           allApps = installed,
           pinnedApps = pinned,
-          sportsEvents = sports,
+          sportsEvents = emptyList(),
+          allSportsEvents = emptyList(),
           gameNews = emptyList(),
           moonPhaseInfo = moon,
           weatherData = weather,
@@ -122,8 +123,9 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
         )
       }
 
-      // Fetch RSS articles in the background; refreshes also happen every 30 minutes.
+      // Fetch RSS and sports schedules in the background.
       refreshGameNews()
+      refreshSports()
 
       // Fetch live weather in background
       val savedLocation = prefs.getWeatherLocation().trim()
@@ -179,9 +181,22 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     _uiState.update { it.copy(seriesList = current) }
   }
 
+  private fun refreshSports() {
+    viewModelScope.launch {
+      val events = sportsRepo.getUpcomingEvents()
+      val filter = _uiState.value.selectedSportFilter
+      _uiState.update {
+        it.copy(
+          allSportsEvents = events,
+          sportsEvents = sportsRepo.filterEvents(events, filter)
+        )
+      }
+    }
+  }
+
   fun setSportFilter(filter: String) {
     prefs.setSportFilter(filter)
-    val filteredEvents = sportsRepo.getEventsBySport(filter)
+    val filteredEvents = sportsRepo.filterEvents(_uiState.value.allSportsEvents, filter)
     _uiState.update { it.copy(selectedSportFilter = filter, sportsEvents = filteredEvents) }
   }
 
