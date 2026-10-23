@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
-import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -58,7 +57,6 @@ import com.example.ui.components.MoonPhaseWidget
 import com.example.ui.components.SportsWidget
 import com.example.ui.components.TvCard
 import com.example.ui.components.TvShowsWidget
-import com.example.ui.components.WallpaperPickerModal
 import com.example.ui.components.WeatherWidget
 import com.example.ui.components.WeatherSetupWidget
 import com.example.ui.theme.NeonBlue
@@ -77,7 +75,6 @@ fun TvLauncherScreen(
   val uiState by viewModel.uiState.collectAsState()
   val context = LocalContext.current
 
-  var showWallpaperModal by remember { mutableStateOf(false) }
 
   Box(modifier = modifier.fillMaxSize()) {
     // 1. 4K Wallpaper Background
@@ -135,7 +132,6 @@ fun TvLauncherScreen(
         ) {
           // Line 1: Status Bar (clock/date omitted; weather widget already provides them)
           TopTvStatusBar(
-            onOpenWallpaper = { showWallpaperModal = true },
             onOpenSettings = {
               try {
                 val intent = Intent(Settings.ACTION_SETTINGS)
@@ -354,27 +350,11 @@ fun TvLauncherScreen(
       }
     }
 
-    // Wallpaper Customizer Modal
-    if (showWallpaperModal) {
-      WallpaperPickerModal(
-        currentWallpaperId = uiState.currentWallpaperId,
-        onDismiss = { showWallpaperModal = false },
-        onSelectWallpaper = { wp ->
-          viewModel.selectWallpaper(wp)
-          showWallpaperModal = false
-        },
-        onSetCustomUrl = { url ->
-          viewModel.setCustomWallpaperUrl(url)
-          showWallpaperModal = false
-        }
-      )
-    }
   }
 }
 
 @Composable
 fun TopTvStatusBar(
-  onOpenWallpaper: () -> Unit,
   onOpenSettings: () -> Unit,
   onRefresh: () -> Unit
 ) {
@@ -421,24 +401,6 @@ fun TopTvStatusBar(
       horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
       TvCard(
-        onClick = onOpenWallpaper,
-        shape = RoundedCornerShape(8.dp),
-        backgroundColor = Color.White.copy(alpha = 0.1f),
-        focusedBorderColor = NeonCyan,
-        focusedScale = 1.08f,
-        elevation = 2.dp
-      ) {
-        Row(
-          modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Icon(Icons.Default.Wallpaper, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(13.dp))
-          Spacer(modifier = Modifier.width(4.dp))
-          Text(text = "Fondo 4K", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-        }
-      }
-
-      TvCard(
         onClick = onRefresh,
         shape = CircleShape,
         backgroundColor = Color.White.copy(alpha = 0.1f),
@@ -480,7 +442,7 @@ fun WallpaperBackground(
         modifier = Modifier.fillMaxSize(),
         contentScale = ContentScale.Crop
       )
-    } else if (wallpaperId == "cosmic_nebula") {
+    } else if (wallpaperId == "cosmic_nebula" || wallpaperId == "space_auto") {
       Image(
         painter = painterResource(id = R.drawable.wallpaper_cosmic_4k_1792767721304),
         contentDescription = "Nebulosa Cósmica 4K",
