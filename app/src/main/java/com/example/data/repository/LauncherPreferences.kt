@@ -36,7 +36,11 @@ class LauncherPreferences(context: Context) {
     prefs.edit().putStringSet(KEY_PINNED_APPS, packages).apply()
   }
 
-  fun getWeatherLocation(): String = prefs.getString(KEY_LOCATION, "") ?: ""
+  fun getWeatherLocation(): String {
+    val saved = prefs.getString(KEY_LOCATION, "") ?: ""
+    // Older builds silently defaulted to Madrid; treat that legacy value as unconfigured.
+    return if (saved.equals("Madrid, España", ignoreCase = true)) "" else saved
+  }
 
   fun setWeatherLocation(location: String) {
     prefs.edit().putString(KEY_LOCATION, location).apply()
