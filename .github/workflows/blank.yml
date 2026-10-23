@@ -17,17 +17,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurar Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Configurar Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
 
       - name: Instalar SDK requerido
         run: |
-          yes | sdkmanager --licenses
           sdkmanager --install \
             "platforms;android-36.1" \
             "build-tools;36.0.0"
