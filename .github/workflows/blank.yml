@@ -33,7 +33,12 @@ jobs:
             "platforms;android-36.1" \
             "build-tools;36.0.0"
 
-      - name: Preparar archivo de configuración
+      - name: Instalar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Preparar configuración
         run: |
           if [ ! -f .env.example ]; then
             touch .env.example
@@ -52,11 +57,9 @@ jobs:
             -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Compilar APK
-        run: |
-          chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug
+        run: gradle --no-daemon assembleDebug
 
-      - name: Nombrar APK
+      - name: Preparar APK descargable
         run: |
           mkdir -p salida
           cp app/build/outputs/apk/debug/app-debug.apk \
