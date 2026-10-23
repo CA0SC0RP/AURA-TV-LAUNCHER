@@ -730,6 +730,7 @@ fun LocationInputDialog(
 @Composable
 fun WeatherSetupWidget(
   onLocationChange: (String) -> Unit,
+  savedLocation: String = "",
   modifier: Modifier = Modifier
 ) {
   var showLocationDialog by remember { mutableStateOf(false) }
@@ -772,7 +773,7 @@ fun WeatherSetupWidget(
 
   if (showLocationDialog) {
     LocationInputDialog(
-      currentLocation = "",
+      currentLocation = savedLocation,
       onDismiss = { showLocationDialog = false },
       onConfirm = { location ->
         onLocationChange(location)
