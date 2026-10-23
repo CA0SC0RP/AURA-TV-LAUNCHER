@@ -63,7 +63,7 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
       val country = firstResult.optString("country", "")
       // 2. Fetch Forecast from Open-Meteo
       val unitParam = if (isFahrenheit) "&temperature_unit=fahrenheit" else ""
-      val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto$unitParam"
+      val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max&timezone=auto$unitParam"
 
       val weatherReq = Request.Builder().url(weatherUrl).build()
       val weatherResp = client.newCall(weatherReq).execute()
@@ -119,6 +119,7 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
         val minTemps = daily.optJSONArray("temperature_2m_min")
         val dailyCodes = daily.optJSONArray("weather_code")
         val uvMax = daily.optJSONArray("uv_index_max")
+        val precipitationProbability = daily.optJSONArray("precipitation_probability_max")
 
         val sdfParser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val sdfDayName = SimpleDateFormat("EEE", Locale("es", "ES"))
@@ -147,7 +148,8 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
                 minTemp = minT,
                 maxTemp = maxT,
                 weatherCode = dCode,
-                condition = getWeatherDescription(dCode)
+                condition = getWeatherDescription(dCode),
+                precipitationProbabilityPercent = precipitationProbability?.optInt(i)
               )
             )
           }
