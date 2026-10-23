@@ -240,19 +240,6 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     _uiState.update { it.copy(favoriteSportsTeams = updated) }
   }
 
-  fun addCustomSportEvent(
-    sport: String,
-    tournament: String,
-    home: String,
-    away: String,
-    time: String,
-    channel: String
-  ) {
-    sportsRepo.addCustomEvent(sport, tournament, home, away, time, channel)
-    val filteredEvents = sportsRepo.getEventsBySport(_uiState.value.selectedSportFilter)
-    _uiState.update { it.copy(sportsEvents = filteredEvents) }
-  }
-
   fun togglePinApp(packageName: String, shouldPin: Boolean) {
     val currentPinned = prefs.getPinnedApps().toMutableSet()
     if (shouldPin) {
