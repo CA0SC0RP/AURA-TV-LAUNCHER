@@ -199,7 +199,7 @@ fun MoonPhaseWidget(
         }
       }
 
-      // Astronomical Calendar details
+      // Compact next-phase summary
       Column(
         modifier = Modifier
           .fillMaxWidth()
@@ -211,16 +211,26 @@ fun MoonPhaseWidget(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(text = "Próx. Luna Llena:", color = TvTextSecondary, fontSize = 9.sp)
-          Text(text = moonInfo.nextFullMoonDate, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+          Text(text = "Próxima fase:", color = TvTextSecondary, fontSize = 9.sp)
+          Text(
+            text = nextMoonPhase(moonInfo.ageDays).first,
+            color = NeonAmber,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+          )
         }
         Spacer(modifier = Modifier.height(2.dp))
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(text = "Salida / Puesta:", color = TvTextSecondary, fontSize = 9.sp)
-          Text(text = "${moonInfo.moonrise} / ${moonInfo.moonset}", color = NeonAmber, fontSize = 9.sp)
+          Text(text = "Fecha estimada:", color = TvTextSecondary, fontSize = 9.sp)
+          Text(
+            text = nextMoonPhase(moonInfo.ageDays).second,
+            color = Color.White,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+          )
         }
       }
     }
@@ -269,6 +279,13 @@ fun MoonPhaseWidget(
 
           Spacer(modifier = Modifier.height(12.dp))
 
+          Text(
+            text = "Calendario de fases",
+            color = NeonAmber,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+          )
+          Spacer(modifier = Modifier.height(6.dp))
           Column(
             modifier = Modifier
               .fillMaxWidth()
@@ -276,14 +293,20 @@ fun MoonPhaseWidget(
               .background(Color.Black.copy(alpha = 0.35f))
               .padding(12.dp)
           ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-              Text(text = "Próxima Luna Llena:", color = TvTextSecondary, fontSize = 11.sp)
-              Text(text = moonInfo.nextFullMoonDate, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
+            MoonPhaseDateRow("Cuarto creciente", nextPhaseDate(moonInfo.ageDays, 7.38))
+            MoonPhaseDateRow("Luna llena", nextPhaseDate(moonInfo.ageDays, 14.765))
+            MoonPhaseDateRow("Cuarto menguante", nextPhaseDate(moonInfo.ageDays, 22.15))
+            MoonPhaseDateRow("Luna nueva", nextPhaseDate(moonInfo.ageDays, 0.0))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+              text = "Las fechas de los cuartos son estimaciones calculadas a partir del ciclo lunar; pueden variar aproximadamente un día.",
+              color = TvTextSecondary,
+              fontSize = 10.sp
+            )
             Spacer(modifier = Modifier.height(6.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-              Text(text = "Próxima Luna Nueva:", color = TvTextSecondary, fontSize = 11.sp)
-              Text(text = moonInfo.nextNewMoonDate, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+              Text(text = "Salida / puesta:", color = TvTextSecondary, fontSize = 11.sp)
+              Text(text = "${moonInfo.moonrise} / ${moonInfo.moonset}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(6.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -295,4 +318,43 @@ fun MoonPhaseWidget(
       }
     }
   }
+}
+
+
+private const val SYNODIC_MONTH_DAYS = 29.53059
+
+private fun nextPhaseDate(currentAgeDays: Double, targetAgeDays: Double): String {
+  var daysUntil = (targetAgeDays - currentAgeDays + SYNODIC_MONTH_DAYS) % SYNODIC_MONTH_DAYS
+  if (daysUntil < 0.5) daysUntil += SYNODIC_MONTH_DAYS
+  val date = java.util.Calendar.getInstance()
+  date.add(java.util.Calendar.DAY_OF_YEAR, kotlin.math.ceil(daysUntil).toInt())
+  return SimpleDateFormat("d MMM yyyy", Locale("es", "ES")).format(date.time)
+}
+
+private fun nextMoonPhase(currentAgeDays: Double): Pair<String, String> {
+  val phases = listOf(
+    "Cuarto creciente" to 7.38,
+    "Luna llena" to 14.765,
+    "Cuarto menguante" to 22.15,
+    "Luna nueva" to 0.0
+  )
+  val next = phases.minByOrNull { (_, targetAge) ->
+    var days = (targetAge - currentAgeDays + SYNODIC_MONTH_DAYS) % SYNODIC_MONTH_DAYS
+    if (days < 0.5) days += SYNODIC_MONTH_DAYS
+    days
+  } ?: phases.first()
+  return next.first to nextPhaseDate(currentAgeDays, next.second)
+}
+
+@Composable
+private fun MoonPhaseDateRow(label: String, date: String) {
+  Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.SpaceBetween,
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Text(text = label, color = TvTextSecondary, fontSize = 11.sp)
+    Text(text = date, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+  }
+  Spacer(modifier = Modifier.height(6.dp))
 }
