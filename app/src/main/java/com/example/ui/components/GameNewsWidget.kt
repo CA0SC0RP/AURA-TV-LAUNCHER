@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -119,7 +122,7 @@ fun GameNewsWidget(
             .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
           Text(
-            text = "Sólo Información",
+            text = "RSS · ACTUALIZABLE",
             color = TvTextSecondary,
             fontSize = 9.sp,
             fontWeight = FontWeight.Medium
@@ -144,7 +147,7 @@ fun GameNewsWidget(
             verticalArrangement = Arrangement.spacedBy(5.dp)
           ) {
             AsyncImage(
-              model = gameNewsImage(game.id),
+              model = game.imageUrl,
               contentDescription = game.title,
               modifier = Modifier
                 .fillMaxWidth()
@@ -293,21 +296,12 @@ fun GameNewsWidget(
   }
 }
 
-private fun gameNewsImage(id: String): String = when (id) {
-  "gta6" -> "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&q=85"
-  "mh_wilds" -> "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&q=85"
-  "metroid_prime_4" -> "https://images.unsplash.com/photo-1493711662062-fa541372b786?w=1200&q=85"
-  "death_stranding_2" -> "https://images.unsplash.com/photo-1547394765-185e1e68f34e?w=1200&q=85"
-  "witcher_4" -> "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&q=85"
-  "kcd2" -> "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&q=85"
-  else -> "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&q=85"
-}
-
 @Composable
 private fun GameNewsDetailDialog(
   game: GameNewsItem,
   onDismiss: () -> Unit
 ) {
+  val context = LocalContext.current
   TvModalOverlay(onDismiss = onDismiss) {
     Surface(
       modifier = Modifier
@@ -340,7 +334,7 @@ private fun GameNewsDetailDialog(
         }
 
         AsyncImage(
-          model = gameNewsImage(game.id),
+          model = game.imageUrl,
           contentDescription = game.title,
           modifier = Modifier
             .fillMaxWidth()
@@ -373,11 +367,25 @@ private fun GameNewsDetailDialog(
         )
 
         Text(
-          text = "Plataformas: ${game.platforms.joinToString(" · ")}",
+          text = "Fuente: ${game.publisher}  ·  ${game.releaseDate}",
           color = NeonBlue,
           fontSize = 12.sp,
           fontWeight = FontWeight.Bold
         )
+
+        if (!game.articleUrl.isNullOrBlank()) {
+          Text(
+            text = "Abrir noticia completa",
+            color = NeonBlue,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable {
+              runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(game.articleUrl)))
+              }
+            }.padding(horizontal = 10.dp, vertical = 8.dp)
+          )
+        }
       }
     }
   }
