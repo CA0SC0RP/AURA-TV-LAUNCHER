@@ -632,9 +632,9 @@ fun LocationInputDialog(
   onDismiss: () -> Unit,
   onConfirm: (String) -> Unit
 ) {
-  var input by remember { mutableStateOf(currentLocation) }
-
-  val popularCities = listOf("Madrid", "Ciudad de México", "Chicago", "Miami", "Buenos Aires", "Bogotá", "Barcelona")
+  val savedParts = remember(currentLocation) { currentLocation.split("|", limit = 2) }
+  var postalCode by remember(currentLocation) { mutableStateOf(savedParts.getOrNull(0)?.takeIf { savedParts.size == 2 } ?: "") }
+  var country by remember(currentLocation) { mutableStateOf(savedParts.getOrNull(1)?.takeIf { savedParts.size == 2 } ?: "") }
 
   TvModalOverlay(onDismiss = onDismiss) {
     Surface(
@@ -663,48 +663,34 @@ fun LocationInputDialog(
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-
         Text(
-          text = "Escribe una ciudad o país y código postal (ej. México, 06100):",
+          text = "Introduce el país y el código postal para consultar el pronóstico de esa zona.",
           color = TvTextSecondary,
           fontSize = 11.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+          value = country,
+          onValueChange = { country = it },
+          placeholder = { Text("País (ej. México o MX)", fontSize = 11.sp) },
+          modifier = Modifier.fillMaxWidth().height(52.dp),
+          singleLine = true,
+          colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = NeonBlue,
+            unfocusedBorderColor = TvBorder,
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White
+          )
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Quick City selector row (convenient without virtual keyboard)
-        LazyRow(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-          items(popularCities) { city ->
-            Box(
-              modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(if (input.equals(city, ignoreCase = true)) NeonBlue.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.3f))
-                .clickable {
-                  input = city
-                  onConfirm(city)
-                }
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-              Text(
-                text = city,
-                color = if (input.equals(city, ignoreCase = true)) NeonBlue else Color.White,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium
-              )
-            }
-          }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
         OutlinedTextField(
-          value = input,
-          onValueChange = { input = it },
-          placeholder = { Text("País y código postal o ciudad", fontSize = 11.sp) },
-          modifier = Modifier.fillMaxWidth().height(46.dp),
+          value = postalCode,
+          onValueChange = { postalCode = it },
+          placeholder = { Text("Código postal", fontSize = 11.sp) },
+          modifier = Modifier.fillMaxWidth().height(52.dp),
           singleLine = true,
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = NeonBlue,
@@ -715,15 +701,17 @@ fun LocationInputDialog(
         )
 
         Spacer(modifier = Modifier.height(12.dp))
-
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.End
         ) {
           Button(
             onClick = {
-              if (input.isNotBlank()) onConfirm(input)
+              if (country.isNotBlank() && postalCode.isNotBlank()) {
+                onConfirm("${postalCode.trim()}|${country.trim()}")
+              }
             },
+            enabled = country.isNotBlank() && postalCode.isNotBlank(),
             colors = ButtonDefaults.buttonColors(containerColor = NeonBlue),
             modifier = Modifier.height(34.dp),
             shape = RoundedCornerShape(8.dp)
@@ -737,7 +725,6 @@ fun LocationInputDialog(
     }
   }
 }
-
 
 @Composable
 fun WeatherSetupWidget(
