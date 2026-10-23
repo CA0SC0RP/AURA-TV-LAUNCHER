@@ -60,6 +60,7 @@ import com.example.ui.components.TvCard
 import com.example.ui.components.TvShowsWidget
 import com.example.ui.components.WallpaperPickerModal
 import com.example.ui.components.WeatherWidget
+import com.example.ui.components.WeatherSetupWidget
 import com.example.ui.theme.NeonBlue
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.TvTextSecondary
@@ -264,23 +265,30 @@ fun TvLauncherScreen(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
               ) {
                 // Widget 1: Clima & Temperatura (día a día / por hora, buscador de país y código postal)
-                uiState.weatherData?.let { weather ->
+                if (uiState.weatherData != null) {
                   WeatherWidget(
-                    weather = weather,
+                    weather = uiState.weatherData!!,
                     onLocationChange = { viewModel.updateWeatherLocation(it) },
                     onToggleUnit = { viewModel.toggleWeatherUnit() },
                     modifier = Modifier
                       .fillMaxWidth()
-                      .weight(1.1f)
+                      .height(210.dp)
+                  )
+                } else {
+                  WeatherSetupWidget(
+                    onLocationChange = { viewModel.updateWeatherLocation(it) },
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .height(210.dp)
                   )
                 }
 
-                // Widget 2: Fase Lunar (debajo del clima / calendario)
+                // Widget 2: Fase Lunar (compacta, debajo del clima)
                 MoonPhaseWidget(
                   moonInfo = uiState.moonPhaseInfo,
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.9f)
+                    .height(130.dp)
                 )
               }
             }
@@ -325,11 +333,18 @@ fun TvLauncherScreen(
 
               // Right Widgets: Weather & Moon
               Text(text = "Lado Derecho (Clima & Fase Lunar)", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-              uiState.weatherData?.let { weather ->
+              if (uiState.weatherData != null) {
                 WeatherWidget(
-                  weather = weather,
+                  weather = uiState.weatherData!!,
                   onLocationChange = { viewModel.updateWeatherLocation(it) },
                   onToggleUnit = { viewModel.toggleWeatherUnit() },
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                )
+              } else {
+                WeatherSetupWidget(
+                  onLocationChange = { viewModel.updateWeatherLocation(it) },
                   modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
