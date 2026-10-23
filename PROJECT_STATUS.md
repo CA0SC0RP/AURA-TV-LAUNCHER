@@ -17,7 +17,11 @@ All ongoing work is being committed to this feature branch. Do not merge into `m
 - The default favorites are capped at six.
 - The gaming-news widget has a larger presentation area, a rotating visual card, previous/next controls, and a detail dialog with a larger image and readable summary.
 - Selecting a gaming-news item opens its detail view; Back closes it and returns to the launcher.
-- The current gaming-news dataset is still a fixed local list; the artwork URLs are illustrative gaming images, not verified official game cover art or a live news feed.
+- Gaming news now loads from RSS feeds configured for PlayStation Blog, Xbox Wire, Nintendo Life, IGN, and GameSpot.
+- RSS articles carry their own title, summary, publication date, publisher, article URL, and image when the feed supplies one. The widget no longer maps article IDs to illustrative Unsplash images.
+- Selecting a story opens its detail dialog and provides a link to the original article. Missing feed images are explicitly shown as unavailable rather than replaced with unrelated artwork.
+- RSS requests run in the background so a slow feed does not hold up the initial launcher screen. News refreshes on startup/manual launcher refresh and every 30 minutes while the ViewModel remains active.
+- RSS availability and image coverage depend on each publisher's feed and network access; feeds that fail are skipped. Live feed parsing and Android TV rendering still need build/device verification.
 
 ## Verification status
 - Changes are committed to this feature branch.
