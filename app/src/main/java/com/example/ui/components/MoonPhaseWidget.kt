@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -240,6 +241,7 @@ fun MoonPhaseWidget(
 
   // Astronomical modal when user presses OK / selects the Moon Widget
   if (showDetailsDialog) {
+    BackHandler(enabled = true) { showDetailsDialog = false }
     TvModalOverlay(onDismiss = { showDetailsDialog = false }) {
       Surface(
         modifier = Modifier
