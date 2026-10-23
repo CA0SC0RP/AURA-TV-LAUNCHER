@@ -27,6 +27,9 @@ All ongoing work is being committed to this feature branch. Do not merge into `m
 - RSS requests run in the background so a slow feed does not hold up the initial launcher screen. News refreshes on startup/manual launcher refresh and every 30 minutes while the ViewModel remains active.
 - RSS availability and image coverage depend on each publisher's feed and network access; feeds that fail are skipped. Live feed parsing and Android TV rendering still need build/device verification.
 
+- The top status bar no longer repeats the clock/date; that information is already shown by the weather widget.
+- The TV-series strip uses taller, wider cards with larger posters and titles. Each card prioritizes the next episode date and no longer displays season/episode numbers in the compact view.
+
 ## Verification status
 - Changes are committed to this feature branch.
 - No APK has been generated for these grouped changes.
