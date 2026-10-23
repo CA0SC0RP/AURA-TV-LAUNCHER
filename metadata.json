@@ -1,0 +1,6 @@
+{
+  "name": "Aura TV Launcher",
+  "description": "Android TV 4K launcher with modular widgets for TV shows tracker, weather & lunar phases, live sports, game news ticker, and customizable app dock.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
