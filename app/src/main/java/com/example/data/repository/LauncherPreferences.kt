@@ -36,7 +36,7 @@ class LauncherPreferences(context: Context) {
     prefs.edit().putStringSet(KEY_PINNED_APPS, packages).apply()
   }
 
-  fun getWeatherLocation(): String = prefs.getString(KEY_LOCATION, "Madrid, España") ?: "Madrid, España"
+  fun getWeatherLocation(): String = prefs.getString(KEY_LOCATION, "") ?: ""
 
   fun setWeatherLocation(location: String) {
     prefs.edit().putString(KEY_LOCATION, location).apply()
