@@ -209,7 +209,7 @@ fun TvLauncherScreen(
                   },
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(0.85f)
                 )
 
                 // Widget 2: Videojuegos (Ticker informativo pasando poco a poco)
@@ -217,7 +217,7 @@ fun TvLauncherScreen(
                   newsList = uiState.gameNews,
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1.15f)
                 )
               }
 
@@ -330,7 +330,7 @@ fun TvLauncherScreen(
                 newsList = uiState.gameNews,
                 modifier = Modifier
                   .fillMaxWidth()
-                  .height(160.dp)
+                  .height(250.dp)
               )
 
               // Right Widgets: Weather & Moon
