@@ -29,6 +29,7 @@ All ongoing work is being committed to this feature branch. Do not merge into `m
 
 - The top status bar no longer repeats the clock/date; that information is already shown by the weather widget.
 - The TV-series strip uses taller, wider cards with larger posters and titles. Each card prioritizes the next episode date and no longer displays season/episode numbers in the compact view.
+- Static review follow-up: removed obsolete custom-sports callback references that no longer had matching repository methods, and adjusted TVMaze's next-episode field to show the date only in the compact strip.
 
 - Wallpaper selection is now automatic: AURA queries NASA's public Image and Video Library for astronomical imagery, downloads a high-resolution asset when available, and caches the last successful image locally.
 - The automatic space wallpaper rotates every 12 hours while the launcher is active and checks on startup whether a refresh is due. If network access or NASA's service fails, the last cached wallpaper remains visible; the bundled cosmic wallpaper is the first-run fallback.
