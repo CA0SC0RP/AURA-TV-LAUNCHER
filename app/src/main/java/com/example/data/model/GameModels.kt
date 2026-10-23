@@ -8,5 +8,8 @@ data class GameNewsItem(
   val genre: String,
   val summary: String,
   val publisher: String,
-  val highlightBadge: String? = null
+  val highlightBadge: String? = null,
+  val articleUrl: String? = null,
+  val imageUrl: String? = null,
+  val publishedAt: String? = null
 )
