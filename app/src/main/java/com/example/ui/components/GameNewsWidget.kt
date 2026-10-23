@@ -157,15 +157,26 @@ fun GameNewsWidget(
               .padding(vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
           ) {
-            AsyncImage(
-              model = game.imageUrl,
-              contentDescription = game.title,
-              modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 58.dp, max = 82.dp)
-                .clip(RoundedCornerShape(8.dp)),
-              contentScale = ContentScale.Crop
-            )
+            if (!game.imageUrl.isNullOrBlank()) {
+              AsyncImage(
+                model = game.imageUrl,
+                contentDescription = game.title,
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .heightIn(min = 58.dp, max = 82.dp)
+                  .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+              )
+            } else {
+              Box(
+                modifier = Modifier.fillMaxWidth().height(58.dp)
+                  .clip(RoundedCornerShape(8.dp))
+                  .background(Color.White.copy(alpha = 0.06f)),
+                contentAlignment = Alignment.Center
+              ) {
+                Text("El RSS no incluye imagen", color = TvTextSecondary, fontSize = 10.sp)
+              }
+            }
             Column(modifier = Modifier.clickable { selectedNews = game }) {
               Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -202,7 +213,7 @@ fun GameNewsWidget(
               Spacer(modifier = Modifier.height(2.dp))
 
               Text(
-                text = "${game.publisher} • Estreno: ${game.releaseDate}",
+                text = "${game.publisher} • Publicado: ${game.releaseDate}",
                 color = NeonRose,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold
@@ -344,15 +355,17 @@ private fun GameNewsDetailDialog(
           }
         }
 
-        AsyncImage(
-          model = game.imageUrl,
-          contentDescription = game.title,
-          modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 110.dp, max = 170.dp)
-            .clip(RoundedCornerShape(10.dp)),
-          contentScale = ContentScale.Crop
-        )
+        if (!game.imageUrl.isNullOrBlank()) {
+          AsyncImage(
+            model = game.imageUrl,
+            contentDescription = game.title,
+            modifier = Modifier
+              .fillMaxWidth()
+              .heightIn(min = 110.dp, max = 170.dp)
+              .clip(RoundedCornerShape(10.dp)),
+            contentScale = ContentScale.Crop
+          )
+        }
 
         Text(
           text = game.title,
