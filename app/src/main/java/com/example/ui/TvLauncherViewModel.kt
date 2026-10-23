@@ -179,6 +179,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
   fun togglePinApp(packageName: String, shouldPin: Boolean) {
     val currentPinned = prefs.getPinnedApps().toMutableSet()
     if (shouldPin) {
+      if (packageName !in currentPinned && currentPinned.size >= 6) return
       currentPinned.add(packageName)
     } else {
       currentPinned.remove(packageName)
