@@ -35,9 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -438,7 +435,7 @@ fun WallpaperBackground(
     if (!customUrl.isNullOrBlank()) {
       AsyncImage(
         model = customUrl,
-        contentDescription = "Fondo 4K Personalizado",
+        contentDescription = "Fondo espacial automático",
         modifier = Modifier.fillMaxSize(),
         contentScale = ContentScale.Crop
       )
