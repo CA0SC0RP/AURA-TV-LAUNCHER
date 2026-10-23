@@ -270,6 +270,7 @@ fun TvLauncherScreen(
                     weather = uiState.weatherData!!,
                     onLocationChange = { viewModel.updateWeatherLocation(it) },
                     onToggleUnit = { viewModel.toggleWeatherUnit() },
+                    savedLocation = uiState.weatherLocation,
                     modifier = Modifier
                       .fillMaxWidth()
                       .height(210.dp)
@@ -338,6 +339,7 @@ fun TvLauncherScreen(
                   weather = uiState.weatherData!!,
                   onLocationChange = { viewModel.updateWeatherLocation(it) },
                   onToggleUnit = { viewModel.toggleWeatherUnit() },
+                  savedLocation = uiState.weatherLocation,
                   modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
