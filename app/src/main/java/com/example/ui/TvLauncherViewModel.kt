@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import java.util.concurrent.TimeUnit
 
 data class TvLauncherUiState(
   val seriesList: List<TvSeries> = emptyList(),
@@ -64,6 +66,19 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
 
   init {
     loadAllData()
+    viewModelScope.launch {
+      while (true) {
+        delay(TimeUnit.MINUTES.toMillis(30))
+        refreshGameNews()
+      }
+    }
+  }
+
+  private fun refreshGameNews() {
+    viewModelScope.launch {
+      val articles = gameNewsRepo.getGameNews()
+      _uiState.update { it.copy(gameNews = articles) }
+    }
   }
 
   fun loadAllData() {
@@ -86,7 +101,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
 
       // 3. Sports & Games
       val sports = sportsRepo.getEventsBySport(prefs.getSportFilter())
-      val games = gameNewsRepo.getGameNews()
+      // RSS is fetched after the initial screen state is rendered, so a slow feed cannot hold up the launcher.
 
       // 4. Moon
       val moon = MoonCalculator.calculate()
@@ -100,12 +115,15 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
           allApps = installed,
           pinnedApps = pinned,
           sportsEvents = sports,
-          gameNews = games,
+          gameNews = emptyList(),
           moonPhaseInfo = moon,
           weatherData = weather,
           isLoading = false
         )
       }
+
+      // Fetch RSS articles in the background; refreshes also happen every 30 minutes.
+      refreshGameNews()
 
       // Fetch live weather in background
       val savedLocation = prefs.getWeatherLocation().trim()
