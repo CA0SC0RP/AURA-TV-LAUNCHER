@@ -207,6 +207,8 @@ fun TvLauncherScreen(
                   onAddCustomSport = { s, tr, h, a, t, ch ->
                     viewModel.addCustomSportEvent(s, tr, h, a, t, ch)
                   },
+                  favoriteTeams = uiState.favoriteSportsTeams,
+                  onToggleFavoriteTeam = { viewModel.toggleFavoriteSportsTeam(it) },
                   modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.85f)
@@ -322,6 +324,8 @@ fun TvLauncherScreen(
                 selectedFilter = uiState.selectedSportFilter,
                 onFilterChange = { viewModel.setSportFilter(it) },
                 onAddCustomSport = { s, tr, h, a, t, ch -> viewModel.addCustomSportEvent(s, tr, h, a, t, ch) },
+                favoriteTeams = uiState.favoriteSportsTeams,
+                onToggleFavoriteTeam = { viewModel.toggleFavoriteSportsTeam(it) },
                 modifier = Modifier
                   .fillMaxWidth()
                   .height(180.dp)
