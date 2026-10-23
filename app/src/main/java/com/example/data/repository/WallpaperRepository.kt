@@ -69,8 +69,7 @@ class WallpaperRepository(context: Context) {
           it.startsWith("https://") &&
             (it.substringBefore('?').endsWith(".jpg", true) ||
               it.substringBefore('?').endsWith(".jpeg", true) ||
-              it.substringBefore('?').endsWith(".png", true) ||
-              it.substringBefore('?').endsWith(".tif", true))
+              it.substringBefore('?').endsWith(".png", true))
         }
       }
       // Prefer NASA's original-size asset and avoid thumbnails/preview files.
