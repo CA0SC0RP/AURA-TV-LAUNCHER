@@ -278,6 +278,7 @@ fun TvLauncherScreen(
                 } else {
                   WeatherSetupWidget(
                     onLocationChange = { viewModel.updateWeatherLocation(it) },
+                    savedLocation = uiState.weatherLocation,
                     modifier = Modifier
                       .fillMaxWidth()
                       .height(210.dp)
@@ -347,6 +348,7 @@ fun TvLauncherScreen(
               } else {
                 WeatherSetupWidget(
                   onLocationChange = { viewModel.updateWeatherLocation(it) },
+                  savedLocation = uiState.weatherLocation,
                   modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
