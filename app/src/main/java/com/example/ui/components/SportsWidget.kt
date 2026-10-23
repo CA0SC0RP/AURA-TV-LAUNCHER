@@ -56,7 +56,6 @@ fun SportsWidget(
   sportsEvents: List<SportsEvent>,
   selectedFilter: String,
   onFilterChange: (String) -> Unit,
-  onAddCustomSport: (String, String, String, String, String, String) -> Unit,
   favoriteTeams: Set<String>,
   onToggleFavoriteTeam: (String) -> Unit,
   modifier: Modifier = Modifier
