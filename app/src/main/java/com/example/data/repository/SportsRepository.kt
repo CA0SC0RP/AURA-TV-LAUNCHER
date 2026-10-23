@@ -23,7 +23,7 @@ class SportsRepository {
   suspend fun getUpcomingEvents(): List<SportsEvent> = withContext(Dispatchers.IO) {
     val start = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { time = Date() }
     val end = (start.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 21) }
-    val range = "\${dateKey(start.time)}-\${dateKey(end.time)}"
+    val range = "${dateKey(start.time)}-${dateKey(end.time)}"
 
     val sources = listOf(
       Source("NBA", "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=$range"),
@@ -54,7 +54,7 @@ class SportsRepository {
       .header("Accept", "application/json")
       .build()
     client.newCall(request).execute().use { response ->
-      if (!response.isSuccessful) error("Sports feed HTTP \${response.code}")
+      if (!response.isSuccessful) error("Sports feed HTTP ${response.code}")
       JSONObject(response.body?.string() ?: error("Empty sports response"))
     }
   }
@@ -104,7 +104,7 @@ class SportsRepository {
 
       val formattedDate = formatDate(dateRaw) ?: continue
       output += SportsEvent(
-        id = "\${sport}|\${dateRaw}|\${event.optString("id")}",
+        id = "${sport}|${dateRaw}|${event.optString("id")}",
         sport = sport,
         tournament = tournament,
         teamHome = home,
