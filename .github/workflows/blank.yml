@@ -25,12 +25,20 @@ jobs:
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Instalar SDK de Android
+      - name: Instalar SDK requerido
         run: |
-          sdkmanager --install "platforms;android-36.1"
-          sdkmanager --licenses
+          yes | sdkmanager --licenses
+          sdkmanager --install \
+            "platforms;android-36.1" \
+            "build-tools;36.0.0"
 
-      - name: Preparar firma de prueba
+      - name: Preparar archivo de configuración
+        run: |
+          if [ ! -f .env.example ]; then
+            touch .env.example
+          fi
+
+      - name: Crear firma de prueba
         run: |
           keytool -genkeypair \
             -keystore debug.keystore \
@@ -47,13 +55,13 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug
 
-      - name: Asignar nombre a la prueba
+      - name: Nombrar APK
         run: |
           mkdir -p salida
           cp app/build/outputs/apk/debug/app-debug.apk \
             "salida/AURA-TV-Prueba-${GITHUB_RUN_NUMBER}.apk"
 
-      - name: Publicar APK para descargar
+      - name: Publicar APK descargable
         uses: actions/upload-artifact@v4
         with:
           name: AURA-TV-Prueba-${{ github.run_number }}
