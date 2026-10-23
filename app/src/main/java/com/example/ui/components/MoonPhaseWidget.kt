@@ -216,7 +216,7 @@ fun MoonPhaseWidget(
         ) {
           Text(text = "Próxima fase:", color = TvTextSecondary, fontSize = 9.sp)
           Text(
-            text = nextMoonPhase(moonInfo.ageDays).first,
+            text = nextMoonPhase(moonInfo).first,
             color = NeonAmber,
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold
@@ -229,7 +229,7 @@ fun MoonPhaseWidget(
         ) {
           Text(text = "Fecha estimada:", color = TvTextSecondary, fontSize = 9.sp)
           Text(
-            text = nextMoonPhase(moonInfo.ageDays).second,
+            text = nextMoonPhase(moonInfo).second,
             color = Color.White,
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold
@@ -298,9 +298,9 @@ fun MoonPhaseWidget(
               .padding(12.dp)
           ) {
             MoonPhaseDateRow("Cuarto creciente", nextPhaseDate(moonInfo.ageDays, 7.38))
-            MoonPhaseDateRow("Luna llena", nextPhaseDate(moonInfo.ageDays, 14.765))
+            MoonPhaseDateRow("Luna llena", moonInfo.nextFullMoonDate)
             MoonPhaseDateRow("Cuarto menguante", nextPhaseDate(moonInfo.ageDays, 22.15))
-            MoonPhaseDateRow("Luna nueva", nextPhaseDate(moonInfo.ageDays, 0.0))
+            MoonPhaseDateRow("Luna nueva", moonInfo.nextNewMoonDate)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
               text = "Las fechas de los cuartos son estimaciones calculadas a partir del ciclo lunar; pueden variar aproximadamente un día.",
@@ -335,19 +335,20 @@ private fun nextPhaseDate(currentAgeDays: Double, targetAgeDays: Double): String
   return SimpleDateFormat("d MMM yyyy", Locale("es", "ES")).format(date.time)
 }
 
-private fun nextMoonPhase(currentAgeDays: Double): Pair<String, String> {
+private fun nextMoonPhase(moonInfo: MoonPhaseInfo): Pair<String, String> {
   val phases = listOf(
-    "Cuarto creciente" to 7.38,
-    "Luna llena" to 14.765,
-    "Cuarto menguante" to 22.15,
-    "Luna nueva" to 0.0
+    Triple("Cuarto creciente", 7.38, ""),
+    Triple("Luna llena", 14.765, moonInfo.nextFullMoonDate),
+    Triple("Cuarto menguante", 22.15, ""),
+    Triple("Luna nueva", 0.0, moonInfo.nextNewMoonDate)
   )
-  val next = phases.minByOrNull { (_, targetAge) ->
-    var days = (targetAge - currentAgeDays + SYNODIC_MONTH_DAYS) % SYNODIC_MONTH_DAYS
+  val next = phases.minByOrNull { (_, targetAge, _) ->
+    var days = (targetAge - moonInfo.ageDays + SYNODIC_MONTH_DAYS) % SYNODIC_MONTH_DAYS
     if (days < 0.5) days += SYNODIC_MONTH_DAYS
     days
   } ?: phases.first()
-  return next.first to nextPhaseDate(currentAgeDays, next.second)
+  val date = next.third.ifBlank { nextPhaseDate(moonInfo.ageDays, next.second) }
+  return next.first to date
 }
 
 @Composable
