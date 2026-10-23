@@ -192,10 +192,7 @@ class TvMazeRepository(private val client: OkHttpClient = OkHttpClient.Builder()
       val nextEp = embedded?.optJSONObject("nextepisode")
       val nextAirDate = if (nextEp != null) {
         val airdate = nextEp.optString("airdate", "")
-        val airtime = nextEp.optString("airtime", "")
-        val epSeason = nextEp.optInt("season", 1)
-        val epNumber = nextEp.optInt("number", 1)
-        "T$epSeason E$epNumber: $airdate $airtime".trim()
+        airdate.ifBlank { "Fecha por confirmar" }
       } else {
         if (status.contains("Finalizada", true)) "Serie finalizada" else "Por confirmar"
       }
