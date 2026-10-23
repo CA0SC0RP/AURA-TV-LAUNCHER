@@ -130,8 +130,19 @@ fun GameNewsWidget(
         }
       }
 
-      // Animated News Content
-      if (currentItem != null) {
+      // Animated RSS news content. No bundled sample stories are shown.
+      if (currentItem == null) {
+        Box(
+          modifier = Modifier.fillMaxWidth().weight(1f),
+          contentAlignment = Alignment.Center
+        ) {
+          Text(
+            text = "No hay noticias disponibles. Comprueba la conexión e inténtalo de nuevo.",
+            color = TvTextSecondary,
+            fontSize = 12.sp
+          )
+        }
+      } else {
         AnimatedContent(
           targetState = currentItem,
           transitionSpec = { fadeIn() togetherWith fadeOut() },
