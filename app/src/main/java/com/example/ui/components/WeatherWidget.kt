@@ -375,8 +375,8 @@ fun ExpandedWeatherDialog(
   TvModalOverlay(onDismiss = onDismiss) {
     Surface(
       modifier = Modifier
-        .fillMaxWidth(0.95f)
-        .height(340.dp),
+        .fillMaxWidth(0.96f)
+        .height(420.dp),
       shape = RoundedCornerShape(18.dp),
       color = TvSurfaceElevated,
       border = androidx.compose.foundation.BorderStroke(1.5.dp, NeonBlue)
@@ -384,241 +384,272 @@ fun ExpandedWeatherDialog(
       Column(
         modifier = Modifier
           .fillMaxSize()
-          .padding(horizontal = 18.dp, vertical = 12.dp)
+          .padding(horizontal = 16.dp, vertical = 12.dp)
       ) {
-        // Top Bar
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.WbSunny, contentDescription = null, tint = NeonAmber, modifier = Modifier.size(20.dp))
+          Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Icon(Icons.Default.WbSunny, contentDescription = null, tint = NeonAmber, modifier = Modifier.size(22.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Column {
               Text(
-                text = "Pronóstico Meteorológico Detallado",
+                text = "Pronóstico de 7 días",
                 color = Color.White,
-                fontSize = 15.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
               )
               Text(
-                text = "${weather.cityName}, ${weather.country} • Información de horas y días en tiempo real",
+                text = "${weather.cityName}, ${weather.country} · Datos meteorológicos",
                 color = TvTextSecondary,
-                fontSize = 10.sp
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
               )
             }
           }
-
           Row(verticalAlignment = Alignment.CenterVertically) {
             Button(
               onClick = onOpenLocationSearch,
               colors = ButtonDefaults.buttonColors(containerColor = NeonBlue.copy(alpha = 0.2f)),
-              modifier = Modifier.height(30.dp),
+              modifier = Modifier.height(32.dp),
               shape = RoundedCornerShape(8.dp)
             ) {
               Icon(Icons.Default.EditLocationAlt, contentDescription = null, tint = NeonBlue, modifier = Modifier.size(14.dp))
               Spacer(modifier = Modifier.width(4.dp))
-              Text("Cambiar Lugar", color = NeonBlue, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+              Text("Ubicación", color = NeonBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
+            Spacer(modifier = Modifier.width(6.dp))
             Button(
               onClick = onToggleUnit,
               colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.12f)),
-              modifier = Modifier.height(30.dp),
+              modifier = Modifier.height(32.dp),
               shape = RoundedCornerShape(8.dp)
             ) {
-              Text("Unidad: ${weather.tempUnit}", color = Color.White, fontSize = 10.sp)
+              Text(weather.tempUnit, color = Color.White, fontSize = 11.sp)
             }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            IconButton(onClick = onDismiss, modifier = Modifier.size(30.dp)) {
-              Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TvTextSecondary)
+            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+              Icon(Icons.Default.Close, contentDescription = "Cerrar pronóstico", tint = TvTextSecondary)
             }
           }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // 2-Column Landscape Content: Left = Telemetry & Current, Right = Hours & Days
         Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          horizontalArrangement = Arrangement.spacedBy(14.dp)
+          modifier = Modifier.fillMaxWidth().weight(1f),
+          horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-          // LEFT PANEL: Current metrics
           Column(
             modifier = Modifier
-              .width(230.dp)
+              .width(210.dp)
+              .fillMaxSize()
               .clip(RoundedCornerShape(12.dp))
-              .background(Color.Black.copy(alpha = 0.35f))
+              .background(Color.Black.copy(alpha = 0.30f))
               .padding(12.dp),
             verticalArrangement = Arrangement.SpaceBetween
           ) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.SpaceBetween,
-              modifier = Modifier.fillMaxWidth()
-            ) {
-              Column {
-                Row(verticalAlignment = Alignment.Bottom) {
-                  Text(
-                    text = "${weather.currentTemp.toInt()}",
-                    color = Color.White,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.ExtraBold
-                  )
-                  Text(
-                    text = weather.tempUnit,
-                    color = NeonBlue,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 5.dp)
-                  )
-                }
+            Column {
+              Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                  text = weather.conditionDescription,
-                  color = NeonAmber,
-                  fontSize = 12.sp,
-                  fontWeight = FontWeight.Bold
+                  text = "${weather.currentTemp.toInt()}",
+                  color = Color.White,
+                  fontSize = 42.sp,
+                  fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                  text = weather.tempUnit,
+                  color = NeonBlue,
+                  fontSize = 20.sp,
+                  fontWeight = FontWeight.Bold,
+                  modifier = Modifier.padding(bottom = 6.dp)
                 )
               }
-
-              Icon(
-                imageVector = if (weather.weatherCode <= 1) Icons.Default.WbSunny else Icons.Default.WbCloudy,
-                contentDescription = null,
-                tint = if (weather.weatherCode <= 1) NeonAmber else NeonBlue,
-                modifier = Modifier.size(42.dp)
+              Text(
+                text = weather.conditionDescription,
+                color = NeonAmber,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
               )
             }
 
-            // Grid of 4 telemetry values
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-              Column {
-                Text(text = "Humedad", color = TvTextSecondary, fontSize = 9.sp)
-                Text(text = "${weather.humidity}%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Icon(
+              imageVector = when {
+                weather.weatherCode in 51..67 || weather.weatherCode in 80..82 || weather.weatherCode >= 95 -> Icons.Default.WaterDrop
+                weather.weatherCode <= 1 -> Icons.Default.WbSunny
+                else -> Icons.Default.WbCloudy
+              },
+              contentDescription = weather.conditionDescription,
+              tint = when {
+                weather.weatherCode in 51..67 || weather.weatherCode in 80..82 || weather.weatherCode >= 95 -> NeonCyan
+                weather.weatherCode <= 1 -> NeonAmber
+                else -> NeonBlue
+              },
+              modifier = Modifier.size(54.dp).align(Alignment.CenterHorizontally)
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+              ) {
+                Column(modifier = Modifier.weight(1f)) {
+                  Text("Humedad", color = TvTextSecondary, fontSize = 10.sp)
+                  Text("${weather.humidity}%", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                  Text("Viento", color = TvTextSecondary, fontSize = 10.sp)
+                  Text("${weather.windSpeedKmH} km/h", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
               }
-              Column {
-                Text(text = "Viento", color = TvTextSecondary, fontSize = 9.sp)
-                Text(text = "${weather.windSpeedKmH} km/h", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-              }
-              Column {
-                Text(text = "Índice UV", color = TvTextSecondary, fontSize = 9.sp)
-                Text(text = "${weather.uvIndex}", color = NeonAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-              }
-              Column {
-                Text(text = "Máx / Mín", color = TvTextSecondary, fontSize = 9.sp)
-                Text(text = "${weather.highTemp.toInt()}° / ${weather.lowTemp.toInt()}°", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+              ) {
+                Column(modifier = Modifier.weight(1f)) {
+                  Text("Índice UV", color = TvTextSecondary, fontSize = 10.sp)
+                  Text("${weather.uvIndex}", color = NeonAmber, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                  Text("Máx. / mín.", color = TvTextSecondary, fontSize = 10.sp)
+                  Text("${weather.highTemp.toInt()}° / ${weather.lowTemp.toInt()}°", color = NeonCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
               }
             }
           }
 
-          // RIGHT PANEL: Hours + 7 Days (Horas y Días completos)
           Column(
-            modifier = Modifier
-              .weight(1f)
-              .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.weight(1f).fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
           ) {
-            // Hours Strip
             Text(
-              text = "Pronóstico por Horas:",
+              text = "Esta semana",
               color = NeonCyan,
-              fontSize = 11.sp,
+              fontSize = 13.sp,
               fontWeight = FontWeight.Bold
             )
-
             LazyRow(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(6.dp)
+              modifier = Modifier.fillMaxWidth().weight(1f),
+              horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-              items(weather.hourlyForecast) { item ->
+              items(weather.dailyForecast.take(7)) { item ->
+                val isToday = item.dayLabel.equals("Hoy", ignoreCase = true)
                 Column(
                   modifier = Modifier
-                    .width(58.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (item.isNow) NeonBlue.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.3f))
-                    .padding(vertical = 5.dp),
-                  horizontalAlignment = Alignment.CenterHorizontally
+                    .width(88.dp)
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (isToday) NeonBlue.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.25f))
+                    .padding(horizontal = 6.dp, vertical = 10.dp),
+                  horizontalAlignment = Alignment.CenterHorizontally,
+                  verticalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
-                  Text(text = item.timeLabel, color = if (item.isNow) NeonBlue else TvTextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                  Spacer(modifier = Modifier.height(2.dp))
-                  Icon(
-                    imageVector = if (item.weatherCode <= 1) Icons.Default.WbSunny else Icons.Default.WbCloudy,
-                    contentDescription = null,
-                    tint = if (item.weatherCode <= 1) NeonAmber else NeonBlue,
-                    modifier = Modifier.size(16.dp)
+                  Text(
+                    text = item.dayLabel,
+                    color = if (isToday) NeonCyan else Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                   )
-                  Spacer(modifier = Modifier.height(2.dp))
-                  Text(text = "${item.temp.toInt()}°", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                  Text(
+                    text = item.dateLabel,
+                    color = TvTextSecondary,
+                    fontSize = 9.sp,
+                    maxLines = 1
+                  )
+                  Icon(
+                    imageVector = when {
+                      item.weatherCode in 51..67 || item.weatherCode in 80..82 || item.weatherCode >= 95 -> Icons.Default.WaterDrop
+                      item.weatherCode <= 1 -> Icons.Default.WbSunny
+                      else -> Icons.Default.WbCloudy
+                    },
+                    contentDescription = item.condition,
+                    tint = when {
+                      item.weatherCode in 51..67 || item.weatherCode in 80..82 || item.weatherCode >= 95 -> NeonCyan
+                      item.weatherCode <= 1 -> NeonAmber
+                      else -> NeonBlue
+                    },
+                    modifier = Modifier.size(28.dp)
+                  )
+                  Text(
+                    text = item.condition,
+                    color = TvTextSecondary,
+                    fontSize = 10.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                  )
+                  Spacer(modifier = Modifier.weight(1f))
+                  Text(
+                    text = "${item.maxTemp.toInt()}°",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                  )
+                  Text(
+                    text = "${item.minTemp.toInt()}°",
+                    color = TvTextSecondary,
+                    fontSize = 13.sp
+                  )
+                  item.precipitationProbabilityPercent?.let { probability ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                      Icon(Icons.Default.WaterDrop, contentDescription = "Probabilidad de lluvia", tint = NeonCyan, modifier = Modifier.size(11.dp))
+                      Spacer(modifier = Modifier.width(2.dp))
+                      Text("${probability}%", color = NeonCyan, fontSize = 10.sp)
+                    }
+                  }
                 }
               }
             }
 
-            Spacer(modifier = Modifier.height(2.dp))
-
-            // 7 Days List
             Text(
-              text = "Pronóstico de 7 Días:",
+              text = "Pronóstico por hora",
               color = NeonCyan,
-              fontSize = 11.sp,
+              fontSize = 12.sp,
               fontWeight = FontWeight.Bold
             )
-
-            LazyColumn(
-              modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-              verticalArrangement = Arrangement.spacedBy(3.dp)
+            LazyRow(
+              modifier = Modifier.fillMaxWidth().height(76.dp),
+              horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-              items(weather.dailyForecast) { item ->
-                Row(
+              items(weather.hourlyForecast.take(12)) { item ->
+                Column(
                   modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color.Black.copy(alpha = 0.25f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.SpaceBetween
+                    .width(54.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (item.isNow) NeonBlue.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.25f))
+                    .padding(vertical = 5.dp),
+                  horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                   Text(
-                    text = "${item.dayLabel} (${item.dateLabel})",
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.width(100.dp)
+                    text = item.timeLabel,
+                    color = if (item.isNow) NeonCyan else TvTextSecondary,
+                    fontSize = 9.sp,
+                    fontWeight = if (item.isNow) FontWeight.Bold else FontWeight.Normal
                   )
-
-                  Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    Icon(
-                      imageVector = if (item.weatherCode <= 1) Icons.Default.WbSunny else Icons.Default.WbCloudy,
-                      contentDescription = null,
-                      tint = if (item.weatherCode <= 1) NeonAmber else NeonBlue,
-                      modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                      text = item.condition + (item.precipitationProbabilityPercent?.let { " · lluvia $it%" } ?: ""),
-                      color = TvTextSecondary,
-                      fontSize = 10.sp,
-                      maxLines = 1,
-                      overflow = TextOverflow.Ellipsis
-                    )
-                  }
-
-                  Text(
-                    text = "${item.maxTemp.toInt()}° / ${item.minTemp.toInt()}°",
-                    color = NeonCyan,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
+                  Icon(
+                    imageVector = when {
+                      item.weatherCode in 51..67 || item.weatherCode in 80..82 || item.weatherCode >= 95 -> Icons.Default.WaterDrop
+                      item.weatherCode <= 1 -> Icons.Default.WbSunny
+                      else -> Icons.Default.WbCloudy
+                    },
+                    contentDescription = null,
+                    tint = when {
+                      item.weatherCode in 51..67 || item.weatherCode in 80..82 || item.weatherCode >= 95 -> NeonCyan
+                      item.weatherCode <= 1 -> NeonAmber
+                      else -> NeonBlue
+                    },
+                    modifier = Modifier.size(16.dp)
                   )
+                  Text("${item.temp.toInt()}°", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
               }
             }
