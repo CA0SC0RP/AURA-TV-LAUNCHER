@@ -55,7 +55,6 @@ fun TvModalOverlay(
     modifier = Modifier
       .fillMaxSize()
       .background(Color.Black.copy(alpha = 0.85f))
-      .focusProperties { canFocus = false }
       .clickable(
         interactionSource = remember { MutableInteractionSource() },
         indication = null,
