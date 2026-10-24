@@ -66,7 +66,6 @@ fun TvModalOverlay(
     Box(
       modifier = modifier
         .focusGroup()
-        .focusProperties { canFocus = false }
         .clickable(
         interactionSource = remember { MutableInteractionSource() },
         indication = null,
