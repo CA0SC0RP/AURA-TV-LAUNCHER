@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -92,6 +93,19 @@ class WallpaperRepository(context: Context) {
             tempFile.delete()
             return@use
           }
+
+          // Accept only high-resolution landscape images suitable for a TV screen.
+          val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+          BitmapFactory.decodeFile(tempFile.absolutePath, bounds)
+          val width = bounds.outWidth
+          val height = bounds.outHeight
+          val aspectRatio = if (height > 0) width.toFloat() / height.toFloat() else 0f
+          if (width < MIN_WALLPAPER_WIDTH || height < MIN_WALLPAPER_HEIGHT ||
+            aspectRatio < MIN_WALLPAPER_ASPECT_RATIO) {
+            tempFile.delete()
+            return@use
+          }
+
           if (tempFile.renameTo(cacheFile) || tempFile.copyTo(cacheFile, overwrite = true).exists()) {
             tempFile.delete()
             prefs.edit()
@@ -136,5 +150,8 @@ class WallpaperRepository(context: Context) {
     private const val KEY_UPDATED_AT = "last_successful_download_at"
     private const val KEY_NASA_ID = "last_nasa_asset_id"
     private const val MIN_IMAGE_BYTES = 100_000L
+    private const val MIN_WALLPAPER_WIDTH = 1600
+    private const val MIN_WALLPAPER_HEIGHT = 900
+    private const val MIN_WALLPAPER_ASPECT_RATIO = 1.5f
   }
 }
