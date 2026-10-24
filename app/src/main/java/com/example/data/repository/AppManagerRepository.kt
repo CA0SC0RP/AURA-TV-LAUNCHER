@@ -3,6 +3,7 @@ package com.example.data.repository
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import com.example.data.model.AppItem
 
 class AppManagerRepository(private val context: Context) {
@@ -27,7 +28,8 @@ class AppManagerRepository(private val context: Context) {
     val pm = context.packageManager
     val installedByPackage = linkedMapOf<String, AppItem>()
 
-    // Android TV apps may expose LEANBACK_LAUNCHER instead of the phone-style LAUNCHER category.
+    // Apps may expose TV launcher, standard launcher, or only a launch intent.
+    // Query all launcher categories and merge results without duplicate packages.
     val launcherCategories = listOf(
       Intent.CATEGORY_LEANBACK_LAUNCHER,
       Intent.CATEGORY_LAUNCHER
@@ -38,7 +40,12 @@ class AppManagerRepository(private val context: Context) {
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
           addCategory(category)
         }
-        val activities = pm.queryIntentActivities(intent, 0)
+        val activities = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
+        } else {
+          @Suppress("DEPRECATION")
+          pm.queryIntentActivities(intent, 0)
+        }
         for (ri in activities) {
           val pkg = ri.activityInfo.packageName
           if (pkg == context.packageName || installedByPackage.containsKey(pkg)) continue
@@ -58,12 +65,41 @@ class AppManagerRepository(private val context: Context) {
           )
         }
       } catch (_: Exception) {
-        // Continue with the other launcher category if this query is unavailable.
+        // Continue with other ways of discovering launchable apps.
       }
     }
 
-    // Only return apps actually found on the device; do not show fictional preset entries.
-    return installedByPackage.values.toList()
+    // Some TV apps have no standard launcher activity but still provide a launch intent.
+    // Include only packages that Android can actually launch.
+    try {
+      val installedPackages = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0))
+      } else {
+        @Suppress("DEPRECATION")
+        pm.getInstalledApplications(0)
+      }
+      for (appInfo in installedPackages) {
+        val pkg = appInfo.packageName
+        if (pkg == context.packageName || installedByPackage.containsKey(pkg)) continue
+        val launchIntent = pm.getLaunchIntentForPackage(pkg) ?: continue
+        val label = runCatching { pm.getApplicationLabel(appInfo).toString() }.getOrDefault(pkg)
+        val isSystemApp = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
+        installedByPackage[pkg] = AppItem(
+          packageName = pkg,
+          label = label,
+          icon = runCatching { pm.getApplicationIcon(appInfo) }.getOrNull(),
+          isPinned = pinnedPackageNames.contains(pkg),
+          isSystemApp = isSystemApp,
+          category = if (isSystemApp) "Sistema" else "Instalada",
+          defaultIconType = "default"
+        )
+      }
+    } catch (_: Exception) {
+      // Keep the launchable apps already discovered above.
+    }
+
+    // Only return apps actually found on the device; never show fictional preset entries.
+    return installedByPackage.values.sortedBy { it.label.lowercase() }.toList()
   }
 
   fun launchApp(packageName: String): Boolean {
