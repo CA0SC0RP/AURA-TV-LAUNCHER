@@ -3,6 +3,7 @@ package com.example.ui
 import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -76,6 +77,10 @@ fun TvLauncherScreen(
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val context = LocalContext.current
+
+  // Un launcher no debe cerrarse con "Atrás": para salir se usa el botón de inicio de la TV.
+  // Las ventanas (fondo, series, luna...) tienen su propio "Atrás" y tienen prioridad sobre este.
+  BackHandler(enabled = true) { }
 
   var showWallpaperModal by remember { mutableStateOf(false) }
   var currentTimeStr by remember { mutableStateOf("") }

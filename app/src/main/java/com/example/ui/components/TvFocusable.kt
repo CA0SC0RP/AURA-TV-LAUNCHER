@@ -138,9 +138,11 @@ fun TvCard(
   ) {
     // Glowing ambient background overlay when in TV remote focus
     if (isActive && showFocusGlow) {
+      // matchParentSize: el brillo se ajusta al tamaño de la tarjeta. Con fillMaxSize, una tarjeta
+      // sin tamaño fijo (como los botones de arriba) crecía hasta ocupar toda la pantalla al enfocarla.
       Box(
         modifier = Modifier
-          .fillMaxSize()
+          .matchParentSize()
           .background(
             Brush.radialGradient(
               colors = listOf(
