@@ -1,7 +1,6 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,26 +13,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sports
 import androidx.compose.material.icons.filled.SportsBasketball
-import androidx.compose.material.icons.filled.SportsMotorsports
-import androidx.compose.material.icons.filled.SportsSoccer
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,33 +36,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import com.example.data.model.SportCategory
 import com.example.data.model.SportsEvent
+import com.example.data.repository.NbaTeam
 import com.example.data.repository.SportsRepository
 import com.example.ui.theme.NeonAmber
 import com.example.ui.theme.NeonBlue
 import com.example.ui.theme.NeonGreen
-import com.example.ui.theme.NeonRose
-import com.example.ui.theme.TvBorder
 import com.example.ui.theme.TvBorderFocused
 import com.example.ui.theme.TvSurface
 import com.example.ui.theme.TvSurfaceElevated
 import com.example.ui.theme.TvTextPrimary
 import com.example.ui.theme.TvTextSecondary
 
+/**
+ * Ficha de deportes: dos pestañas (NBA y Tenis) y hasta tres partidos próximos.
+ * En NBA, la lupa abre la lista de equipos para elegir el tuyo.
+ */
 @Composable
 fun SportsWidget(
   sportsEvents: List<SportsEvent>,
   selectedFilter: String,
+  nbaTeamName: String?,
+  isLoading: Boolean,
+  errorMessage: String?,
   onFilterChange: (String) -> Unit,
-  onAddCustomSport: (String, String, String, String, String, String) -> Unit,
+  onPickNbaTeam: (String) -> Unit,
   modifier: Modifier = Modifier
 ) {
-  var showSearchDialog by remember { mutableStateOf(false) }
+  var showTeamPicker by remember { mutableStateOf(false) }
+  val isNba = selectedFilter.equals(SportsRepository.NBA, ignoreCase = true)
 
   // Tarjeta informativa: sin foco propio, el control remoto salta directo a los botones de adentro
   TvCard(
@@ -85,7 +81,7 @@ fun SportsWidget(
         .fillMaxSize()
         .padding(10.dp)
     ) {
-      // Encabezado + botón para buscar / programar un partido
+      // Encabezado (+ lupa para elegir equipo cuando estás en NBA)
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -103,34 +99,37 @@ fun SportsWidget(
           )
           Spacer(modifier = Modifier.width(6.dp))
           Text(
-            text = "Deportes",
+            text = if (isNba && nbaTeamName != null) "NBA · $nbaTeamName" else "Deportes",
             color = TvTextPrimary,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
           )
         }
 
-        Box(
-          modifier = Modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(NeonGreen.copy(alpha = 0.25f))
-            .tvClickable(shape = CircleShape, focusColor = NeonGreen) { showSearchDialog = true },
-          contentAlignment = Alignment.Center
-        ) {
-          Icon(
-            Icons.Default.Search,
-            contentDescription = "Buscar o añadir partido",
-            tint = NeonGreen,
-            modifier = Modifier.size(15.dp)
-          )
+        if (isNba) {
+          Box(
+            modifier = Modifier
+              .size(28.dp)
+              .clip(CircleShape)
+              .background(NeonGreen.copy(alpha = 0.25f))
+              .tvClickable(shape = CircleShape, focusColor = NeonGreen) { showTeamPicker = true },
+            contentAlignment = Alignment.Center
+          ) {
+            Icon(
+              Icons.Default.Search,
+              contentDescription = "Elegir equipo de la NBA",
+              tint = NeonGreen,
+              modifier = Modifier.size(15.dp)
+            )
+          }
         }
       }
 
       Spacer(modifier = Modifier.height(6.dp))
 
-      // Selector: solo unos pocos deportes, todos caben a la vista
+      // Selector: NBA o Tenis
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -149,7 +148,7 @@ fun SportsWidget(
             Text(
               text = cat,
               color = if (isSelected) NeonGreen else Color.White,
-              fontSize = 11.sp,
+              fontSize = 12.sp,
               fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
               maxLines = 1
             )
@@ -166,7 +165,15 @@ fun SportsWidget(
           .weight(1f),
         verticalArrangement = Arrangement.spacedBy(4.dp)
       ) {
-        if (sportsEvents.isEmpty()) {
+        val message = when {
+          isLoading -> "Cargando partidos…"
+          isNba && nbaTeamName == null -> "Presiona la lupa y elige tu equipo de la NBA"
+          errorMessage != null -> errorMessage
+          sportsEvents.isEmpty() -> "No hay partidos próximos"
+          else -> null
+        }
+
+        if (message != null) {
           Box(
             modifier = Modifier
               .fillMaxWidth()
@@ -174,9 +181,10 @@ fun SportsWidget(
             contentAlignment = Alignment.Center
           ) {
             Text(
-              text = "No hay partidos próximos",
+              text = message,
               color = TvTextSecondary,
-              fontSize = 12.sp
+              fontSize = 12.sp,
+              textAlign = TextAlign.Center
             )
           }
         } else {
@@ -198,32 +206,20 @@ fun SportsWidget(
     }
   }
 
-  // Dialog to enter custom sport or team
-  if (showSearchDialog) {
-    SearchSportDialog(
-      onDismiss = { showSearchDialog = false },
-      onFilterSelected = { sportName ->
-        onFilterChange(sportName)
-        showSearchDialog = false
-      },
-      onAddCustom = { sport, tourney, home, away, time, channel ->
-        onAddCustomSport(sport, tourney, home, away, time, channel)
-        showSearchDialog = false
+  if (showTeamPicker) {
+    NbaTeamPickerDialog(
+      onDismiss = { showTeamPicker = false },
+      onTeamSelected = { team ->
+        onPickNbaTeam(team.abbr)
+        showTeamPicker = false
       }
     )
   }
 }
 
-private fun sportAccentColor(sport: String): Color = when {
-  sport.contains("Fútbol", ignoreCase = true) -> NeonGreen
-  sport.contains("Baloncesto", ignoreCase = true) || sport.contains("NBA", ignoreCase = true) -> NeonAmber
-  sport.contains("Fórmula", ignoreCase = true) -> NeonRose
-  else -> NeonBlue
-}
-
 @Composable
 fun SportsEventRow(event: SportsEvent, modifier: Modifier = Modifier) {
-  val accent = sportAccentColor(event.sport)
+  val accent = if (event.sport.equals("Tenis", ignoreCase = true)) NeonBlue else NeonAmber
 
   Row(
     modifier = modifier
@@ -247,9 +243,9 @@ fun SportsEventRow(event: SportsEvent, modifier: Modifier = Modifier) {
       modifier = Modifier.weight(1f),
       verticalArrangement = Arrangement.Center
     ) {
-      // Quién juega contra quién
+      // Quién juega contra quién (o el torneo, si todavía no hay partidos definidos)
       Text(
-        text = "${event.teamHome} vs ${event.teamAway}",
+        text = if (event.teamAway.isBlank()) event.teamHome else "${event.teamHome} vs ${event.teamAway}",
         color = Color.White,
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
@@ -257,194 +253,89 @@ fun SportsEventRow(event: SportsEvent, modifier: Modifier = Modifier) {
         overflow = TextOverflow.Ellipsis
       )
 
-      // Cuándo juegan, y en qué torneo
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-          text = event.airDateTime,
-          color = NeonAmber,
-          fontSize = 11.sp,
-          fontWeight = FontWeight.SemiBold,
-          maxLines = 1
-        )
-        Text(
-          text = "  ·  ${event.tournament}",
-          color = TvTextSecondary,
-          fontSize = 10.sp,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          modifier = Modifier.weight(1f, fill = false)
-        )
-      }
+      // Cuándo juegan
+      Text(
+        text = event.airDateTime,
+        color = NeonAmber,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+      )
     }
   }
 }
 
 @Composable
-fun SearchSportDialog(
+fun NbaTeamPickerDialog(
   onDismiss: () -> Unit,
-  onFilterSelected: (String) -> Unit,
-  onAddCustom: (String, String, String, String, String, String) -> Unit
+  onTeamSelected: (NbaTeam) -> Unit
 ) {
-  var searchQuery by remember { mutableStateOf("") }
-  var isAddingMode by remember { mutableStateOf(false) }
-
-  // Custom fields
-  var customSport by remember { mutableStateOf("Fútbol") }
-  var customTourney by remember { mutableStateOf("") }
-  var customHome by remember { mutableStateOf("") }
-  var customAway by remember { mutableStateOf("") }
-  var customTime by remember { mutableStateOf("") }
-  var customChannel by remember { mutableStateOf("ESPN") }
-
   TvModalOverlay(onDismiss = onDismiss) {
     Surface(
       modifier = Modifier
-        .width(420.dp),
+        .fillMaxWidth(0.85f)
+        .height(320.dp),
       shape = RoundedCornerShape(16.dp),
       color = TvSurfaceElevated,
       border = androidx.compose.foundation.BorderStroke(1.dp, TvBorderFocused)
     ) {
-      Column(modifier = Modifier.padding(20.dp)) {
+      Column(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(horizontal = 18.dp, vertical = 12.dp)
+      ) {
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Text(
-            text = if (isAddingMode) "Programar Deporte en TV" else "Buscar Deporte o Equipo",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
-          )
-          IconButton(onClick = onDismiss) {
+          Column {
+            Text(
+              text = "Elige tu equipo de la NBA",
+              color = Color.White,
+              fontSize = 16.sp,
+              fontWeight = FontWeight.Bold
+            )
+            Text(
+              text = "Verás sus próximos partidos con fecha y hora",
+              color = TvTextSecondary,
+              fontSize = 11.sp
+            )
+          }
+          IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
             Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TvTextSecondary)
           }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (!isAddingMode) {
-          Text(
-            text = "Escribe el deporte o equipo que deseas consultar (ej. 'Fórmula 1', 'Lakers', 'Real Madrid', 'Béisbol'):",
-            color = TvTextSecondary,
-            fontSize = 12.sp
-          )
-
-          Spacer(modifier = Modifier.height(12.dp))
-
-          OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Ej. F1, NBA, UFC, Boca...") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-              focusedBorderColor = NeonGreen,
-              unfocusedBorderColor = TvBorder,
-              focusedTextColor = Color.White,
-              unfocusedTextColor = Color.White
-            )
-          )
-
-          Spacer(modifier = Modifier.height(16.dp))
-
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-          ) {
-            Button(
-              onClick = { isAddingMode = true },
-              colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-              border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen)
+        LazyVerticalGrid(
+          columns = GridCells.Fixed(5),
+          modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          items(SportsRepository.nbaTeams, key = { it.abbr }) { team ->
+            Box(
+              modifier = Modifier
+                .height(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = 0.40f))
+                .tvClickable(shape = RoundedCornerShape(8.dp), focusColor = NeonGreen) { onTeamSelected(team) },
+              contentAlignment = Alignment.Center
             ) {
-              Text("+ Programar Nuevo", color = NeonGreen)
-            }
-
-            Button(
-              onClick = {
-                if (searchQuery.isNotBlank()) onFilterSelected(searchQuery)
-              },
-              colors = ButtonDefaults.buttonColors(containerColor = NeonGreen)
-            ) {
-              Text("Filtrar", color = Color.Black, fontWeight = FontWeight.Bold)
-            }
-          }
-        } else {
-          // Add custom schedule mode
-          OutlinedTextField(
-            value = customSport,
-            onValueChange = { customSport = it },
-            label = { Text("Deporte (Fútbol, F1, Boxeo...)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-          )
-          Spacer(modifier = Modifier.height(6.dp))
-          OutlinedTextField(
-            value = customTourney,
-            onValueChange = { customTourney = it },
-            label = { Text("Torneo o Liga") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-          )
-          Spacer(modifier = Modifier.height(6.dp))
-          Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-              value = customHome,
-              onValueChange = { customHome = it },
-              label = { Text("Equipo / Jugador 1") },
-              modifier = Modifier.weight(1f),
-              singleLine = true
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            OutlinedTextField(
-              value = customAway,
-              onValueChange = { customAway = it },
-              label = { Text("Equipo / Jugador 2") },
-              modifier = Modifier.weight(1f),
-              singleLine = true
-            )
-          }
-          Spacer(modifier = Modifier.height(6.dp))
-          Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-              value = customTime,
-              onValueChange = { customTime = it },
-              label = { Text("Día y Hora (ej. Sábado 20:00)") },
-              modifier = Modifier.weight(1f),
-              singleLine = true
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            OutlinedTextField(
-              value = customChannel,
-              onValueChange = { customChannel = it },
-              label = { Text("Canal de TV (ej. DAZN)") },
-              modifier = Modifier.weight(1f),
-              singleLine = true
-            )
-          }
-
-          Spacer(modifier = Modifier.height(14.dp))
-
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-          ) {
-            Button(
-              onClick = {
-                if (customHome.isNotBlank()) {
-                  onAddCustom(
-                    customSport,
-                    customTourney.ifBlank { "Torneo" },
-                    customHome,
-                    customAway.ifBlank { "Rival" },
-                    customTime.ifBlank { "Próximamente" },
-                    customChannel.ifBlank { "TV" }
-                  )
-                }
-              },
-              colors = ButtonDefaults.buttonColors(containerColor = NeonGreen)
-            ) {
-              Text("Guardar Evento", color = Color.Black, fontWeight = FontWeight.Bold)
+              Text(
+                text = team.name,
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 6.dp)
+              )
             }
           }
         }

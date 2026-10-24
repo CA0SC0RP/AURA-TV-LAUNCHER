@@ -18,6 +18,7 @@ class LauncherPreferences(context: Context) {
     private const val KEY_CUSTOM_WALLPAPER_URL = "custom_wallpaper_url"
     private const val KEY_SERIES_JSON = "saved_series_json"
     private const val KEY_SPORT_FILTER = "sport_filter"
+    private const val KEY_NBA_TEAM = "nba_team"
   }
 
   fun getPinnedApps(): Set<String> {
@@ -69,7 +70,14 @@ class LauncherPreferences(context: Context) {
     prefs.edit().putString(KEY_CUSTOM_WALLPAPER_URL, url).apply()
   }
 
-  fun getSportFilter(): String = prefs.getString(KEY_SPORT_FILTER, "Todos") ?: "Todos"
+  fun getSportFilter(): String = prefs.getString(KEY_SPORT_FILTER, "NBA") ?: "NBA"
+
+  // Abreviatura del equipo de la NBA elegido ("" = todavía no eligió)
+  fun getNbaTeam(): String = prefs.getString(KEY_NBA_TEAM, "") ?: ""
+
+  fun setNbaTeam(abbr: String) {
+    prefs.edit().putString(KEY_NBA_TEAM, abbr).apply()
+  }
 
   fun setSportFilter(filter: String) {
     prefs.edit().putString(KEY_SPORT_FILTER, filter).apply()

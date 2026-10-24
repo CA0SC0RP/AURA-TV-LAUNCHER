@@ -17,6 +17,7 @@ import com.example.data.repository.MoonCalculator
 import com.example.data.repository.SportsRepository
 import com.example.data.repository.TvMazeRepository
 import com.example.data.repository.WeatherRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +29,10 @@ data class TvLauncherUiState(
   val weatherData: WeatherData? = null,
   val moonPhaseInfo: MoonPhaseInfo = MoonCalculator.calculate(),
   val sportsEvents: List<SportsEvent> = emptyList(),
-  val selectedSportFilter: String = "Todos",
+  val selectedSportFilter: String = "NBA",
+  val nbaTeamAbbr: String = "",
+  val sportsLoading: Boolean = true,
+  val sportsError: String? = null,
   val gameNews: List<GameNewsItem> = emptyList(),
   val pinnedApps: List<AppItem> = emptyList(),
   val allApps: List<AppItem> = emptyList(),
@@ -54,7 +58,8 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       customWallpaperUrl = prefs.getCustomWallpaperUrl(),
       isFahrenheit = prefs.isFahrenheit(),
       weatherLocation = prefs.getWeatherLocation(),
-      selectedSportFilter = validSportFilter(prefs.getSportFilter())
+      selectedSportFilter = validSportFilter(prefs.getSportFilter()),
+      nbaTeamAbbr = prefs.getNbaTeam()
     )
   )
   val uiState: StateFlow<TvLauncherUiState> = _uiState.asStateFlow()
@@ -85,8 +90,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       val installed = appManagerRepo.getInstalledApps(pinnedSet)
       val pinned = installed.filter { it.isPinned }
 
-      // 3. Sports & Games
-      val sports = sportsRepo.getEventsBySport(_uiState.value.selectedSportFilter)
+      // 3. Games (los deportes se cargan aparte, desde internet)
       val games = gameNewsRepo.getGameNews()
 
       // 4. Moon
@@ -100,7 +104,6 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
           seriesList = initialSeries,
           allApps = installed,
           pinnedApps = pinned,
-          sportsEvents = sports,
           gameNews = games,
           moonPhaseInfo = moon,
           weatherData = weather,
@@ -108,8 +111,9 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
         )
       }
 
-      // Fetch live weather in background
+      // Fetch live weather and sports in background
       refreshWeather()
+      loadSports()
     }
   }
 
@@ -175,23 +179,42 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     _uiState.update { it.copy(seriesList = current) }
   }
 
-  fun setSportFilter(filter: String) {
-    prefs.setSportFilter(filter)
-    val filteredEvents = sportsRepo.getEventsBySport(filter)
-    _uiState.update { it.copy(selectedSportFilter = filter, sportsEvents = filteredEvents) }
+  private var sportsJob: Job? = null
+
+  fun loadSports() {
+    sportsJob?.cancel()
+    val filter = _uiState.value.selectedSportFilter
+    val team = _uiState.value.nbaTeamAbbr
+    sportsJob = viewModelScope.launch {
+      _uiState.update { it.copy(sportsLoading = true, sportsError = null, sportsEvents = emptyList()) }
+
+      val result = if (filter.equals(SportsRepository.NBA, ignoreCase = true)) {
+        if (team.isBlank()) Result.success(emptyList<SportsEvent>()) else sportsRepo.fetchNbaGames(team)
+      } else {
+        sportsRepo.fetchTennisMatches()
+      }
+
+      _uiState.update {
+        it.copy(
+          sportsLoading = false,
+          sportsEvents = result.getOrDefault(emptyList()),
+          sportsError = if (result.isFailure) "No se pudieron cargar los partidos.\nRevisa tu internet y presiona actualizar." else null
+        )
+      }
+    }
   }
 
-  fun addCustomSportEvent(
-    sport: String,
-    tournament: String,
-    home: String,
-    away: String,
-    time: String,
-    channel: String
-  ) {
-    sportsRepo.addCustomEvent(sport, tournament, home, away, time, channel)
-    val filteredEvents = sportsRepo.getEventsBySport(_uiState.value.selectedSportFilter)
-    _uiState.update { it.copy(sportsEvents = filteredEvents) }
+  fun setSportFilter(filter: String) {
+    val valid = validSportFilter(filter)
+    prefs.setSportFilter(valid)
+    _uiState.update { it.copy(selectedSportFilter = valid) }
+    loadSports()
+  }
+
+  fun setNbaTeam(abbr: String) {
+    prefs.setNbaTeam(abbr)
+    _uiState.update { it.copy(nbaTeamAbbr = abbr) }
+    loadSports()
   }
 
   fun togglePinApp(packageName: String, shouldPin: Boolean) {

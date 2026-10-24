@@ -21,18 +21,11 @@ class ExampleUnitTest {
   }
 
   @Test
-  fun testSportsRepositoryFiltering() {
-    val repo = SportsRepository()
-    val allEvents = repo.getAllEvents()
-    assertTrue("Should have initial sports events", allEvents.isNotEmpty())
-
-    val soccerEvents = repo.getEventsBySport("Fútbol")
-    assertTrue("Should have soccer events", soccerEvents.isNotEmpty())
-    assertTrue("Filtered events should match sport", soccerEvents.all { it.sport.contains("Fútbol", true) || it.tournament.contains("Fútbol", true) })
-
-    val initialCount = allEvents.size
-    repo.addCustomEvent("Boxeo", "Mundial Pesado", "Canelo", "Benavidez", "Sábado 22:00", "DAZN")
-    assertEquals(initialCount + 1, repo.getAllEvents().size)
+  fun testSportsRepositoryTeamsAndSports() {
+    assertEquals(listOf("NBA", "Tenis"), SportsRepository.featuredSports)
+    assertEquals(30, SportsRepository.nbaTeams.size)
+    assertEquals("Lakers", SportsRepository.nbaTeamName("LAL"))
+    assertEquals(null, SportsRepository.nbaTeamName("xyz"))
   }
 
   @Test

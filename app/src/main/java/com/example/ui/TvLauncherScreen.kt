@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.R
+import com.example.data.repository.SportsRepository
 import com.example.ui.components.AppDockWidget
 import com.example.ui.components.GameNewsWidget
 import com.example.ui.components.MoonPhaseWidget
@@ -202,10 +203,11 @@ fun TvLauncherScreen(
                 SportsWidget(
                   sportsEvents = uiState.sportsEvents,
                   selectedFilter = uiState.selectedSportFilter,
-                  onFilterChange = { viewModel.setSportFilter(it) },
-                  onAddCustomSport = { s, tr, h, a, t, ch ->
-                    viewModel.addCustomSportEvent(s, tr, h, a, t, ch)
-                  },
+                  nbaTeamName = SportsRepository.nbaTeamName(uiState.nbaTeamAbbr),
+                isLoading = uiState.sportsLoading,
+                errorMessage = uiState.sportsError,
+                onFilterChange = { viewModel.setSportFilter(it) },
+                onPickNbaTeam = { viewModel.setNbaTeam(it) },
                   modifier = Modifier
                     .fillMaxWidth()
                     .weight(1.5f)
@@ -311,8 +313,11 @@ fun TvLauncherScreen(
               SportsWidget(
                 sportsEvents = uiState.sportsEvents,
                 selectedFilter = uiState.selectedSportFilter,
-                onFilterChange = { viewModel.setSportFilter(it) },
-                onAddCustomSport = { s, tr, h, a, t, ch -> viewModel.addCustomSportEvent(s, tr, h, a, t, ch) },
+                nbaTeamName = SportsRepository.nbaTeamName(uiState.nbaTeamAbbr),
+                  isLoading = uiState.sportsLoading,
+                  errorMessage = uiState.sportsError,
+                  onFilterChange = { viewModel.setSportFilter(it) },
+                  onPickNbaTeam = { viewModel.setNbaTeam(it) },
                 modifier = Modifier
                   .fillMaxWidth()
                   .height(180.dp)
