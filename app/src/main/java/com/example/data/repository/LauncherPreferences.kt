@@ -12,6 +12,7 @@ class LauncherPreferences(context: Context) {
   companion object {
     private const val KEY_PINNED_APPS = "pinned_apps"
     private const val KEY_LOCATION = "weather_location"
+    private const val KEY_AUTO_LOCATION = "weather_auto_location"
     private const val KEY_FAHRENHEIT = "is_fahrenheit"
     private const val KEY_WALLPAPER_ID = "wallpaper_id"
     private const val KEY_CUSTOM_WALLPAPER_URL = "custom_wallpaper_url"
@@ -36,7 +37,15 @@ class LauncherPreferences(context: Context) {
     prefs.edit().putStringSet(KEY_PINNED_APPS, packages).apply()
   }
 
-  fun getWeatherLocation(): String = prefs.getString(KEY_LOCATION, "Madrid, España") ?: "Madrid, España"
+  fun getWeatherLocation(): String = prefs.getString(KEY_LOCATION, "Ciudad de México") ?: "Ciudad de México"
+
+  // Por defecto el clima se actualiza solo según dónde esté la TV; si el usuario elige una
+  // ciudad a mano, se desactiva hasta que vuelva a pedir la detección automática.
+  fun isAutoLocation(): Boolean = prefs.getBoolean(KEY_AUTO_LOCATION, true)
+
+  fun setAutoLocation(auto: Boolean) {
+    prefs.edit().putBoolean(KEY_AUTO_LOCATION, auto).apply()
+  }
 
   fun setWeatherLocation(location: String) {
     prefs.edit().putString(KEY_LOCATION, location).apply()

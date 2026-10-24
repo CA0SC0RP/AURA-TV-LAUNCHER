@@ -105,8 +105,8 @@ fun TvShowsWidget(
         TvCard(
           onClick = { showCalendarDialog = true },
           modifier = Modifier
-            .height(44.dp)
-            .width(115.dp),
+            .height(60.dp)
+            .width(130.dp),
           shape = RoundedCornerShape(10.dp),
           backgroundColor = Color.Black.copy(alpha = 0.55f),
           focusedBorderColor = NeonCyan,
@@ -123,13 +123,13 @@ fun TvShowsWidget(
               imageVector = Icons.Default.CalendarMonth,
               contentDescription = "Calendario de Series",
               tint = NeonCyan,
-              modifier = Modifier.size(16.dp)
+              modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
               text = "Calendario",
               color = NeonCyan,
-              fontSize = 11.sp,
+              fontSize = 13.sp,
               fontWeight = FontWeight.Bold
             )
           }
@@ -153,8 +153,8 @@ fun TvShowsWidget(
         TvCard(
           onClick = { showAddDialog = true },
           modifier = Modifier
-            .height(44.dp)
-            .width(92.dp),
+            .height(60.dp)
+            .width(112.dp),
           shape = RoundedCornerShape(10.dp),
           backgroundColor = Color.Black.copy(alpha = 0.45f),
           focusedBorderColor = NeonBlue,
@@ -171,13 +171,13 @@ fun TvShowsWidget(
               imageVector = Icons.Default.Add,
               contentDescription = "Agregar Serie",
               tint = NeonBlue,
-              modifier = Modifier.size(16.dp)
+              modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
               text = "+ Serie",
               color = NeonBlue,
-              fontSize = 11.sp,
+              fontSize = 13.sp,
               fontWeight = FontWeight.Bold
             )
           }
@@ -236,8 +236,8 @@ fun CompactTvSeriesCard(
   TvCard(
     onClick = onClick,
     modifier = Modifier
-      .height(48.dp)
-      .width(215.dp),
+      .height(64.dp)
+      .width(270.dp),
     shape = RoundedCornerShape(10.dp),
     backgroundColor = Color.Black.copy(alpha = 0.55f),
     focusedBorderColor = NeonPurple,
@@ -252,7 +252,7 @@ fun CompactTvSeriesCard(
       // Mini Poster
       Box(
         modifier = Modifier
-          .size(30.dp, 40.dp)
+          .size(42.dp, 56.dp)
           .clip(RoundedCornerShape(6.dp))
           .background(Color(0xFF1E293B)),
         contentAlignment = Alignment.Center
@@ -279,7 +279,7 @@ fun CompactTvSeriesCard(
         Text(
           text = series.name,
           color = Color.White,
-          fontSize = 12.sp,
+          fontSize = 14.sp,
           fontWeight = FontWeight.Bold,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis
@@ -301,7 +301,7 @@ fun CompactTvSeriesCard(
             Text(
               text = "T${series.currentSeason} E${series.currentEpisode}",
               color = NeonBlue,
-              fontSize = 10.sp,
+              fontSize = 12.sp,
               fontWeight = FontWeight.Bold
             )
           }
@@ -310,7 +310,7 @@ fun CompactTvSeriesCard(
           Text(
             text = series.nextAirDate ?: series.status,
             color = NeonAmber,
-            fontSize = 10.sp,
+            fontSize = 12.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
           )
