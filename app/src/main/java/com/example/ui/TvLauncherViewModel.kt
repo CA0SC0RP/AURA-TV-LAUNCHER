@@ -35,7 +35,7 @@ data class TvLauncherUiState(
   val currentWallpaperId: String = "cosmic_nebula",
   val customWallpaperUrl: String? = null,
   val isFahrenheit: Boolean = false,
-  val weatherLocation: String = "Madrid, España",
+  val weatherLocation: String = "Ciudad de México",
   val isLoading: Boolean = true
 )
 
@@ -54,10 +54,15 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       customWallpaperUrl = prefs.getCustomWallpaperUrl(),
       isFahrenheit = prefs.isFahrenheit(),
       weatherLocation = prefs.getWeatherLocation(),
-      selectedSportFilter = prefs.getSportFilter()
+      selectedSportFilter = validSportFilter(prefs.getSportFilter())
     )
   )
   val uiState: StateFlow<TvLauncherUiState> = _uiState.asStateFlow()
+
+  // Si el filtro guardado ya no está entre los deportes destacados (por ejemplo "Todos"), usa el primero
+  private fun validSportFilter(saved: String): String =
+    SportsRepository.featuredSports.firstOrNull { it.equals(saved, ignoreCase = true) }
+      ?: SportsRepository.featuredSports.first()
 
   val tvMazeRepository: TvMazeRepository get() = tvMazeRepo
   val appManagerRepository: AppManagerRepository get() = appManagerRepo
@@ -81,7 +86,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       val pinned = installed.filter { it.isPinned }
 
       // 3. Sports & Games
-      val sports = sportsRepo.getEventsBySport(prefs.getSportFilter())
+      val sports = sportsRepo.getEventsBySport(_uiState.value.selectedSportFilter)
       val games = gameNewsRepo.getGameNews()
 
       // 4. Moon
@@ -104,28 +109,47 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       }
 
       // Fetch live weather in background
-      refreshWeather(prefs.getWeatherLocation(), prefs.isFahrenheit())
+      refreshWeather()
     }
   }
 
-  fun refreshWeather(location: String, isFahrenheit: Boolean) {
+  fun refreshWeather() {
     viewModelScope.launch {
-      val data = weatherRepo.fetchWeather(location, isFahrenheit)
-      _uiState.update { it.copy(weatherData = data, weatherLocation = location) }
+      val fahrenheit = _uiState.value.isFahrenheit
+
+      // 1. Ubicación automática (según la conexión a internet de la TV)
+      if (prefs.isAutoLocation()) {
+        val automatic = weatherRepo.fetchWeatherAutomatic(fahrenheit)
+        if (automatic != null) {
+          _uiState.update { it.copy(weatherData = automatic) }
+          return@launch
+        }
+      }
+
+      // 2. Respaldo: la última ciudad elegida a mano (o Ciudad de México)
+      val location = _uiState.value.weatherLocation
+      val data = weatherRepo.fetchWeather(location, fahrenheit)
+      _uiState.update { it.copy(weatherData = data) }
     }
   }
 
   fun updateWeatherLocation(newLocation: String) {
     prefs.setWeatherLocation(newLocation)
+    prefs.setAutoLocation(false)
     _uiState.update { it.copy(weatherLocation = newLocation) }
-    refreshWeather(newLocation, _uiState.value.isFahrenheit)
+    refreshWeather()
+  }
+
+  fun useAutomaticLocation() {
+    prefs.setAutoLocation(true)
+    refreshWeather()
   }
 
   fun toggleWeatherUnit() {
     val newUnit = !_uiState.value.isFahrenheit
     prefs.setFahrenheit(newUnit)
     _uiState.update { it.copy(isFahrenheit = newUnit) }
-    refreshWeather(_uiState.value.weatherLocation, newUnit)
+    refreshWeather()
   }
 
   fun addSeries(series: TvSeries) {

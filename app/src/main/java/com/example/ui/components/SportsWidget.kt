@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -72,8 +74,7 @@ fun SportsWidget(
 ) {
   var showSearchDialog by remember { mutableStateOf(false) }
 
-  val categories = listOf("Todos", "NBA", "Fútbol", "Fórmula 1", "Béisbol", "NFL", "Tenis")
-
+  // Tarjeta informativa: sin foco propio, el control remoto salta directo a los botones de adentro
   TvCard(
     modifier = modifier,
     backgroundColor = TvSurface.copy(alpha = 0.82f),
@@ -84,13 +85,16 @@ fun SportsWidget(
         .fillMaxSize()
         .padding(10.dp)
     ) {
-      // Header & Search / Add button
+      // Encabezado + botón para buscar / programar un partido
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier.weight(1f)
+        ) {
           Icon(
             imageVector = Icons.Default.SportsBasketball,
             contentDescription = null,
@@ -99,76 +103,95 @@ fun SportsWidget(
           )
           Spacer(modifier = Modifier.width(6.dp))
           Text(
-            text = "Deportes & NBA",
+            text = "Deportes",
             color = TvTextPrimary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
           )
         }
 
         Box(
           modifier = Modifier
-            .size(24.dp)
-            .clip(androidx.compose.foundation.shape.CircleShape)
+            .size(28.dp)
+            .clip(CircleShape)
             .background(NeonGreen.copy(alpha = 0.25f))
-            .clickable { showSearchDialog = true },
+            .tvClickable(shape = CircleShape, focusColor = NeonGreen) { showSearchDialog = true },
           contentAlignment = Alignment.Center
         ) {
-          Icon(Icons.Default.Search, contentDescription = "Buscar o añadir deporte", tint = NeonGreen, modifier = Modifier.size(13.dp))
+          Icon(
+            Icons.Default.Search,
+            contentDescription = "Buscar o añadir partido",
+            tint = NeonGreen,
+            modifier = Modifier.size(15.dp)
+          )
         }
       }
 
-      Spacer(modifier = Modifier.height(8.dp))
+      Spacer(modifier = Modifier.height(6.dp))
 
-      // Category Chips
-      LazyRow(
+      // Selector: solo unos pocos deportes, todos caben a la vista
+      Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
       ) {
-        items(categories) { cat ->
+        SportsRepository.featuredSports.forEach { cat ->
           val isSelected = selectedFilter.equals(cat, ignoreCase = true)
           Box(
             modifier = Modifier
-              .clip(RoundedCornerShape(6.dp))
-              .background(if (isSelected) NeonGreen.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.35f))
-              .clickable { onFilterChange(cat) }
-              .padding(horizontal = 8.dp, vertical = 4.dp)
+              .weight(1f)
+              .clip(RoundedCornerShape(8.dp))
+              .background(if (isSelected) NeonGreen.copy(alpha = 0.30f) else Color.Black.copy(alpha = 0.40f))
+              .tvClickable(shape = RoundedCornerShape(8.dp), focusColor = NeonGreen) { onFilterChange(cat) }
+              .padding(vertical = 5.dp),
+            contentAlignment = Alignment.Center
           ) {
             Text(
               text = cat,
-              color = if (isSelected) NeonGreen else TvTextSecondary,
-              fontSize = 10.sp,
-              fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+              color = if (isSelected) NeonGreen else Color.White,
+              fontSize = 11.sp,
+              fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+              maxLines = 1
             )
           }
         }
       }
 
-      Spacer(modifier = Modifier.height(8.dp))
+      Spacer(modifier = Modifier.height(6.dp))
 
-      // Events list
-      if (sportsEvents.isEmpty()) {
-        Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          contentAlignment = Alignment.Center
-        ) {
-          Text(
-            text = "No hay eventos para '$selectedFilter'",
-            color = TvTextSecondary,
-            fontSize = 11.sp
-          )
-        }
-      } else {
-        LazyColumn(
-          modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
-          verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-          items(sportsEvents.take(4)) { event ->
-            SportsEventRow(event)
+      // Tres partidos, cada uno con el mismo espacio
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .weight(1f),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+      ) {
+        if (sportsEvents.isEmpty()) {
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .weight(1f),
+            contentAlignment = Alignment.Center
+          ) {
+            Text(
+              text = "No hay partidos próximos",
+              color = TvTextSecondary,
+              fontSize = 12.sp
+            )
+          }
+        } else {
+          val visibleEvents = sportsEvents.take(3)
+          visibleEvents.forEach { event ->
+            SportsEventRow(
+              event = event,
+              modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+            )
+          }
+          // Si hay menos de 3 partidos, el espacio sobrante queda vacío (sin estirar las filas)
+          repeat(3 - visibleEvents.size) {
+            Spacer(modifier = Modifier.weight(1f))
           }
         }
       }
@@ -191,84 +214,67 @@ fun SportsWidget(
   }
 }
 
+private fun sportAccentColor(sport: String): Color = when {
+  sport.contains("Fútbol", ignoreCase = true) -> NeonGreen
+  sport.contains("Baloncesto", ignoreCase = true) || sport.contains("NBA", ignoreCase = true) -> NeonAmber
+  sport.contains("Fórmula", ignoreCase = true) -> NeonRose
+  else -> NeonBlue
+}
+
 @Composable
-fun SportsEventRow(event: SportsEvent) {
-  Column(
-    modifier = Modifier
-      .fillMaxWidth()
+fun SportsEventRow(event: SportsEvent, modifier: Modifier = Modifier) {
+  val accent = sportAccentColor(event.sport)
+
+  Row(
+    modifier = modifier
       .clip(RoundedCornerShape(8.dp))
-      .background(Color.Black.copy(alpha = 0.25f))
-      .padding(8.dp)
+      .background(Color.Black.copy(alpha = 0.30f))
+      .padding(horizontal = 8.dp, vertical = 3.dp),
+    verticalAlignment = Alignment.CenterVertically
   ) {
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
+    // Barra de color según el deporte
+    Box(
+      modifier = Modifier
+        .width(3.dp)
+        .fillMaxHeight(0.75f)
+        .clip(RoundedCornerShape(2.dp))
+        .background(accent)
+    )
+
+    Spacer(modifier = Modifier.width(8.dp))
+
+    Column(
+      modifier = Modifier.weight(1f),
+      verticalArrangement = Arrangement.Center
     ) {
+      // Quién juega contra quién
       Text(
-        text = event.tournament,
-        color = NeonGreen,
-        fontSize = 10.sp,
+        text = "${event.teamHome} vs ${event.teamAway}",
+        color = Color.White,
+        fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
       )
 
-      Box(
-        modifier = Modifier
-          .clip(RoundedCornerShape(4.dp))
-          .background(Color(0xFFEF4444).copy(alpha = 0.2f))
-          .padding(horizontal = 4.dp, vertical = 1.dp)
-      ) {
-        Text(
-          text = event.status,
-          color = Color(0xFFF87171),
-          fontSize = 9.sp,
-          fontWeight = FontWeight.Bold
-        )
-      }
-    }
-
-    Spacer(modifier = Modifier.height(2.dp))
-
-    Text(
-      text = "${event.teamHome} vs ${event.teamAway}",
-      color = Color.White,
-      fontSize = 11.sp,
-      fontWeight = FontWeight.SemiBold,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis
-    )
-
-    Spacer(modifier = Modifier.height(3.dp))
-
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
+      // Cuándo juegan, y en qué torneo
       Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-          imageVector = Icons.Default.LiveTv,
-          contentDescription = null,
-          tint = NeonAmber,
-          modifier = Modifier.size(11.dp)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
         Text(
-          text = event.broadcaster,
-          color = TvTextSecondary,
-          fontSize = 9.sp,
+          text = event.airDateTime,
+          color = NeonAmber,
+          fontSize = 11.sp,
+          fontWeight = FontWeight.SemiBold,
           maxLines = 1
         )
+        Text(
+          text = "  ·  ${event.tournament}",
+          color = TvTextSecondary,
+          fontSize = 10.sp,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          modifier = Modifier.weight(1f, fill = false)
+        )
       }
-
-      Text(
-        text = event.airDateTime,
-        color = NeonAmber,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold
-      )
     }
   }
 }

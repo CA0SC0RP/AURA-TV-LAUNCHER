@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditLocationAlt
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WaterDrop
@@ -65,6 +66,7 @@ import com.example.ui.theme.TvTextSecondary
 fun WeatherWidget(
   weather: WeatherData,
   onLocationChange: (String) -> Unit,
+  onUseAutoLocation: () -> Unit,
   onToggleUnit: () -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -117,25 +119,16 @@ fun WeatherWidget(
             modifier = Modifier
               .clip(RoundedCornerShape(6.dp))
               .background(NeonBlue.copy(alpha = 0.2f))
-              .clickable { onToggleUnit() }
-              .padding(horizontal = 6.dp, vertical = 2.dp)
+              .tvClickable(shape = RoundedCornerShape(6.dp), focusColor = NeonBlue) { onToggleUnit() }
+              .padding(horizontal = 8.dp, vertical = 3.dp)
           ) {
             Text(
               text = weather.tempUnit,
               color = NeonBlue,
-              fontSize = 10.sp,
+              fontSize = 12.sp,
               fontWeight = FontWeight.Bold
             )
           }
-
-          Spacer(modifier = Modifier.width(4.dp))
-
-          Icon(
-            imageVector = Icons.Default.OpenInFull,
-            contentDescription = "Ampliar",
-            tint = TvTextSecondary,
-            modifier = Modifier.size(13.dp)
-          )
         }
       }
 
@@ -210,7 +203,7 @@ fun WeatherWidget(
             .weight(1f)
             .clip(RoundedCornerShape(6.dp))
             .background(if (!isHourlyView) NeonBlue.copy(alpha = 0.25f) else Color.Transparent)
-            .clickable { isHourlyView = false }
+            .tvClickable(shape = RoundedCornerShape(6.dp), focusColor = NeonBlue) { isHourlyView = false }
             .padding(vertical = 3.dp),
           contentAlignment = Alignment.Center
         ) {
@@ -227,7 +220,7 @@ fun WeatherWidget(
             .weight(1f)
             .clip(RoundedCornerShape(6.dp))
             .background(if (isHourlyView) NeonBlue.copy(alpha = 0.25f) else Color.Transparent)
-            .clickable { isHourlyView = true }
+            .tvClickable(shape = RoundedCornerShape(6.dp), focusColor = NeonBlue) { isHourlyView = true }
             .padding(vertical = 3.dp),
           contentAlignment = Alignment.Center
         ) {
@@ -287,7 +280,7 @@ fun WeatherWidget(
             .weight(1f),
           verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-          items(weather.dailyForecast.take(4)) { item ->
+          items(weather.dailyForecast.take(3)) { item ->
             Row(
               modifier = Modifier
                 .fillMaxWidth()
@@ -300,9 +293,9 @@ fun WeatherWidget(
               Text(
                 text = item.dayLabel,
                 color = TvTextPrimary,
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.width(32.dp)
+                modifier = Modifier.width(38.dp)
               )
 
               Icon(
@@ -315,7 +308,7 @@ fun WeatherWidget(
               Text(
                 text = item.condition,
                 color = TvTextSecondary,
-                fontSize = 9.sp,
+                fontSize = 10.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
@@ -326,7 +319,7 @@ fun WeatherWidget(
               Text(
                 text = "${item.maxTemp.toInt()}° / ${item.minTemp.toInt()}°",
                 color = Color.White,
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
               )
             }
@@ -356,6 +349,10 @@ fun WeatherWidget(
       onDismiss = { showLocationDialog = false },
       onConfirm = { newLoc ->
         onLocationChange(newLoc)
+        showLocationDialog = false
+      },
+      onUseAuto = {
+        onUseAutoLocation()
         showLocationDialog = false
       }
     )
@@ -630,11 +627,12 @@ fun ExpandedWeatherDialog(
 fun LocationInputDialog(
   currentLocation: String,
   onDismiss: () -> Unit,
-  onConfirm: (String) -> Unit
+  onConfirm: (String) -> Unit,
+  onUseAuto: () -> Unit
 ) {
   var input by remember { mutableStateOf(currentLocation) }
 
-  val popularCities = listOf("Madrid", "Ciudad de México", "Chicago", "Miami", "Buenos Aires", "Bogotá", "Barcelona")
+  val popularCities = listOf("Ciudad de México", "Guadalajara", "Monterrey", "Chicago", "Miami", "Madrid", "Bogotá")
 
   TvModalOverlay(onDismiss = onDismiss) {
     Surface(
@@ -665,7 +663,7 @@ fun LocationInputDialog(
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-          text = "Selecciona una ciudad o escribe país / código postal:",
+          text = "El clima se actualiza solo según dónde esté tu TV. Si prefieres, elige otra ciudad:",
           color = TvTextSecondary,
           fontSize = 11.sp
         )
@@ -682,7 +680,7 @@ fun LocationInputDialog(
               modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
                 .background(if (input.equals(city, ignoreCase = true)) NeonBlue.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.3f))
-                .clickable {
+                .tvClickable(shape = RoundedCornerShape(6.dp), focusColor = NeonBlue) {
                   input = city
                   onConfirm(city)
                 }
@@ -718,8 +716,20 @@ fun LocationInputDialog(
 
         Row(
           modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.End
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
         ) {
+          Button(
+            onClick = onUseAuto,
+            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan.copy(alpha = 0.2f)),
+            modifier = Modifier.height(34.dp),
+            shape = RoundedCornerShape(8.dp)
+          ) {
+            Icon(Icons.Default.MyLocation, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(14.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Detectar automáticamente", color = NeonCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+          }
+
           Button(
             onClick = {
               if (input.isNotBlank()) onConfirm(input)

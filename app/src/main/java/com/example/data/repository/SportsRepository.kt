@@ -5,6 +5,11 @@ import com.example.data.model.SportsEvent
 
 class SportsRepository {
 
+  companion object {
+    // Los deportes que muestra la ficha de deportes del launcher (el primero es el inicial).
+    val featuredSports = listOf("Fútbol", "NBA", "Fórmula 1")
+  }
+
   private val eventsList = mutableListOf(
     // Soccer
     SportsEvent(
