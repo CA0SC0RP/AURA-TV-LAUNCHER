@@ -80,33 +80,7 @@ fun TvLauncherScreen(
       customUrl = uiState.customWallpaperUrl
     )
 
-    // Subtle edge shading (enhances widget contrast while keeping the CENTER pristine for the wallpaper)
-    Box(
-      modifier = Modifier
-        .fillMaxSize()
-        .background(
-          Brush.horizontalGradient(
-            0.0f to Color.Black.copy(alpha = 0.60f),
-            0.22f to Color.Black.copy(alpha = 0.20f),
-            0.5f to Color.Transparent, // Center is crystal clear
-            0.78f to Color.Black.copy(alpha = 0.20f),
-            1.0f to Color.Black.copy(alpha = 0.60f)
-          )
-        )
-    )
-
-    Box(
-      modifier = Modifier
-        .fillMaxSize()
-        .background(
-          Brush.verticalGradient(
-            0.0f to Color.Black.copy(alpha = 0.65f),
-            0.15f to Color.Transparent,
-            0.82f to Color.Transparent,
-            1.0f to Color.Black.copy(alpha = 0.65f)
-          )
-        )
-    )
+    // El fondo espacial permanece visible a pantalla completa; el contraste lo aportan los propios widgets.
 
     if (uiState.isLoading) {
       Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
