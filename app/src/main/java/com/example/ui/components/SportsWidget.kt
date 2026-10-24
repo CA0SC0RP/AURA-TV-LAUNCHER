@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusGroup
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -138,7 +139,7 @@ fun SportsWidget(
         color = TvSurfaceElevated,
         border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen.copy(alpha = 0.65f))
       ) {
-        Column(Modifier.fillMaxSize().padding(18.dp)) {
+        Column(Modifier.fillMaxSize().padding(18.dp).focusGroup()) {
           Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
