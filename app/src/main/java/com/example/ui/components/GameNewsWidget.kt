@@ -99,20 +99,6 @@ fun GameNewsWidget(
             fontWeight = FontWeight.Bold
           )
         }
-
-        Box(
-          modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(Color.White.copy(alpha = 0.1f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-          Text(
-            text = "Sólo Información",
-            color = TvTextSecondary,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Medium
-          )
-        }
       }
 
       // Animated News Content
@@ -132,53 +118,54 @@ fun GameNewsWidget(
             verticalArrangement = Arrangement.SpaceBetween
           ) {
             Column {
-              Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-              ) {
-                Text(
-                  text = game.title,
-                  color = Color.White,
-                  fontSize = 14.sp,
-                  fontWeight = FontWeight.Bold,
-                  maxLines = 1,
-                  overflow = TextOverflow.Ellipsis,
-                  modifier = Modifier.weight(1f)
-                )
-
-                game.highlightBadge?.let { badge ->
-                  Box(
-                    modifier = Modifier
-                      .clip(RoundedCornerShape(4.dp))
-                      .background(NeonPurple.copy(alpha = 0.3f))
-                      .padding(horizontal = 5.dp, vertical = 1.dp)
-                  ) {
-                    Text(
-                      text = badge,
-                      color = NeonPurple,
-                      fontSize = 9.sp,
-                      fontWeight = FontWeight.Bold
-                    )
-                  }
-                }
-              }
+              Text(
+                text = game.title,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+              )
 
               Spacer(modifier = Modifier.height(2.dp))
 
-              Text(
-                text = "${game.publisher} • Estreno: ${game.releaseDate}",
-                color = NeonRose,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold
-              )
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                game.highlightBadge?.let { badge ->
+                  Text(
+                    text = badge,
+                    color = NeonPurple,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                  )
+                  Text(
+                    text = "  ·  ",
+                    color = TvTextSecondary,
+                    fontSize = 10.sp,
+                    maxLines = 1
+                  )
+                }
+                Text(
+                  text = "Estreno: ${game.releaseDate}",
+                  color = NeonRose,
+                  fontSize = 10.sp,
+                  fontWeight = FontWeight.SemiBold,
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                  modifier = Modifier.weight(1f, fill = false)
+                )
+              }
 
-              Spacer(modifier = Modifier.height(4.dp))
+              Spacer(modifier = Modifier.height(3.dp))
 
               Text(
                 text = game.summary,
                 color = TvTextSecondary,
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
               )
@@ -200,7 +187,8 @@ fun GameNewsWidget(
                     text = platform,
                     color = NeonBlue,
                     fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
                   )
                 }
               }
@@ -232,10 +220,10 @@ fun GameNewsWidget(
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
           Box(
             modifier = Modifier
-              .size(22.dp)
+              .size(26.dp)
               .clip(CircleShape)
               .background(Color.White.copy(alpha = 0.15f))
-              .clickable {
+              .tvClickable(shape = CircleShape, focusColor = NeonPurple) {
                 if (newsList.isNotEmpty()) {
                   currentIndex = if (currentIndex > 0) currentIndex - 1 else newsList.size - 1
                 }
@@ -247,10 +235,10 @@ fun GameNewsWidget(
 
           Box(
             modifier = Modifier
-              .size(22.dp)
+              .size(26.dp)
               .clip(CircleShape)
               .background(Color.White.copy(alpha = 0.15f))
-              .clickable {
+              .tvClickable(shape = CircleShape, focusColor = NeonPurple) {
                 if (newsList.isNotEmpty()) {
                   currentIndex = (currentIndex + 1) % newsList.size
                 }

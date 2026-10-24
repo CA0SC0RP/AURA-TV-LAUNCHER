@@ -185,7 +185,7 @@ fun TvLauncherScreen(
 
           if (isWideScreen) {
             // Standard 16:9 4K TV Landscape Layout - more compact side widgets as requested
-            val sideColumnWidth = if (maxWidth >= 1000.dp) 185.dp else 170.dp
+            val sideColumnWidth = if (maxWidth >= 1000.dp) 225.dp else 205.dp
 
             Row(
               modifier = Modifier.fillMaxSize(),
@@ -208,7 +208,7 @@ fun TvLauncherScreen(
                   },
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1.5f)
                 )
 
                 // Widget 2: Videojuegos (Ticker informativo pasando poco a poco)
@@ -216,7 +216,7 @@ fun TvLauncherScreen(
                   newsList = uiState.gameNews,
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1.1f)
                 )
               }
 
@@ -268,10 +268,11 @@ fun TvLauncherScreen(
                   WeatherWidget(
                     weather = weather,
                     onLocationChange = { viewModel.updateWeatherLocation(it) },
+                    onUseAutoLocation = { viewModel.useAutomaticLocation() },
                     onToggleUnit = { viewModel.toggleWeatherUnit() },
                     modifier = Modifier
                       .fillMaxWidth()
-                      .weight(1.1f)
+                      .weight(1.2f)
                   )
                 }
 
@@ -280,7 +281,7 @@ fun TvLauncherScreen(
                   moonInfo = uiState.moonPhaseInfo,
                   modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.9f)
+                    .weight(0.8f)
                 )
               }
             }
@@ -329,6 +330,7 @@ fun TvLauncherScreen(
                 WeatherWidget(
                   weather = weather,
                   onLocationChange = { viewModel.updateWeatherLocation(it) },
+                  onUseAutoLocation = { viewModel.useAutomaticLocation() },
                   onToggleUnit = { viewModel.toggleWeatherUnit() },
                   modifier = Modifier
                     .fillMaxWidth()

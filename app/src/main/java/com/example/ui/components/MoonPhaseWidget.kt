@@ -85,7 +85,7 @@ fun MoonPhaseWidget(
           Text(
             text = "Fase Lunar",
             color = TvTextPrimary,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold
           )
         }
@@ -99,7 +99,7 @@ fun MoonPhaseWidget(
           Text(
             text = "${moonInfo.illuminationPercent}% Luz",
             color = NeonAmber,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold
           )
         }
@@ -182,19 +182,22 @@ fun MoonPhaseWidget(
           Text(
             text = moonInfo.phaseName,
             color = Color.White,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
           )
           Text(
             text = "Día ${moonInfo.ageDays} de 29.5",
             color = TvTextSecondary,
-            fontSize = 10.sp
+            fontSize = 11.sp,
+            maxLines = 1
           )
           Text(
             text = "Signo: ${moonInfo.constellation}",
             color = NeonPurple,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1
           )
         }
       }
@@ -211,16 +214,16 @@ fun MoonPhaseWidget(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(text = "Próx. Luna Llena:", color = TvTextSecondary, fontSize = 9.sp)
-          Text(text = moonInfo.nextFullMoonDate, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+          Text(text = "Luna llena:", color = TvTextSecondary, fontSize = 11.sp, maxLines = 1)
+          Text(text = moonInfo.nextFullMoonDate, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
         Spacer(modifier = Modifier.height(2.dp))
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(text = "Salida / Puesta:", color = TvTextSecondary, fontSize = 9.sp)
-          Text(text = "${moonInfo.moonrise} / ${moonInfo.moonset}", color = NeonAmber, fontSize = 9.sp)
+          Text(text = "Luna nueva:", color = TvTextSecondary, fontSize = 11.sp, maxLines = 1)
+          Text(text = moonInfo.nextNewMoonDate, color = NeonAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
       }
     }

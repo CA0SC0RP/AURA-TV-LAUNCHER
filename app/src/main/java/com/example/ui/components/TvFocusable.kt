@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -81,6 +82,9 @@ fun TvCard(
   focusedBorderColor: Color = NeonCyan,
   focusedScale: Float = 1.05f,
   showFocusGlow: Boolean = true,
+  // Una tarjeta sin acción (solo informativa) no necesita foco: así el control remoto la salta
+  // y no aparecen resaltados raros en widgets que no se pueden "abrir".
+  isFocusable: Boolean = onClick != null,
   elevation: Dp = 6.dp,
   content: @Composable BoxScope.() -> Unit
 ) {
@@ -120,16 +124,15 @@ fun TvCard(
       .background(backgroundColor)
       .border(BorderStroke(borderWidth, currentBorderColor), shape)
       .then(
-        if (onClick != null) {
-          Modifier
-            .clickable(
-              interactionSource = interactionSource,
-              indication = null,
-              onClick = onClick
-            )
-            .focusable(interactionSource = interactionSource)
-        } else {
-          Modifier.focusable(interactionSource = interactionSource)
+        when {
+          // clickable ya es enfocable por sí mismo: un solo objetivo de foco por tarjeta
+          onClick != null -> Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            onClick = onClick
+          )
+          isFocusable -> Modifier.focusable(interactionSource = interactionSource)
+          else -> Modifier
         }
       )
   ) {
@@ -149,18 +152,29 @@ fun TvCard(
             )
           )
       )
-
-      // Little neon corner dot indicator to show exact TV pointer position
-      Box(
-        modifier = Modifier
-          .align(Alignment.TopEnd)
-          .padding(6.dp)
-          .size(8.dp)
-          .clip(CircleShape)
-          .background(focusedBorderColor)
-      )
     }
 
     content()
   }
+}
+
+/**
+ * Botón pequeño (chip, flecha, pestaña) que se puede seleccionar con el control remoto.
+ * Al enfocarlo se ilumina con un borde de color; no usa la indicación blanca por defecto.
+ */
+fun Modifier.tvClickable(
+  shape: Shape = RoundedCornerShape(8.dp),
+  focusColor: Color = NeonCyan,
+  onClick: () -> Unit
+): Modifier = composed {
+  val source = remember { MutableInteractionSource() }
+  val focused by source.collectIsFocusedAsState()
+  this
+    .background(if (focused) focusColor.copy(alpha = 0.28f) else Color.Transparent, shape)
+    .border(
+      width = if (focused) 2.dp else 0.dp,
+      color = if (focused) focusColor else Color.Transparent,
+      shape = shape
+    )
+    .clickable(interactionSource = source, indication = null, onClick = onClick)
 }

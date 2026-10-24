@@ -21,8 +21,8 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
   .build()) {
 
   private val fallbackWeather = WeatherData(
-    cityName = "Madrid",
-    country = "España",
+    cityName = "Ciudad de México",
+    country = "México",
     currentTemp = 22.0,
     tempUnit = "°C",
     conditionDescription = "Despejado",
@@ -75,117 +75,190 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
       val cityName = firstResult.optString("name", queryLocation)
       val country = firstResult.optString("country", "")
 
-      // 2. Fetch Forecast from Open-Meteo
-      val unitParam = if (isFahrenheit) "&temperature_unit=fahrenheit" else ""
-      val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto$unitParam"
-
-      val weatherReq = Request.Builder().url(weatherUrl).build()
-      val weatherResp = client.newCall(weatherReq).execute()
-      val weatherBody = weatherResp.body?.string() ?: return@withContext fallbackWeather
-
-      val weatherJson = JSONObject(weatherBody)
-      val current = weatherJson.optJSONObject("current") ?: return@withContext fallbackWeather
-      val hourly = weatherJson.optJSONObject("hourly")
-      val daily = weatherJson.optJSONObject("daily")
-
-      val currentTemp = current.optDouble("temperature_2m", 20.0)
-      val weatherCode = current.optInt("weather_code", 0)
-      val humidity = current.optInt("relative_humidity_2m", 50)
-      val windSpeed = current.optDouble("wind_speed_10m", 10.0)
-
-      val hourlyList = mutableListOf<HourlyWeather>()
-      if (hourly != null) {
-        val times = hourly.optJSONArray("time")
-        val temps = hourly.optJSONArray("temperature_2m")
-        val codes = hourly.optJSONArray("weather_code")
-
-        val nowCal = Calendar.getInstance()
-        val currentHour = nowCal.get(Calendar.HOUR_OF_DAY)
-
-        if (times != null && temps != null && codes != null) {
-          // Grab up to next 12 hours starting near current hour
-          var count = 0
-          for (i in 0 until times.length()) {
-            val tStr = times.optString(i, "")
-            val hourPart = if (tStr.contains("T")) tStr.substringAfter("T") else tStr
-            val hVal = hourPart.take(2).toIntOrNull() ?: 0
-
-            if (hVal >= currentHour && count < 8) {
-              val isNow = count == 0
-              val timeLabel = if (isNow) "Ahora" else hourPart
-              val tempVal = temps.optDouble(i, currentTemp)
-              val codeVal = codes.optInt(i, weatherCode)
-              hourlyList.add(HourlyWeather(timeLabel, (tempVal * 10).roundToInt() / 10.0, codeVal, isNow))
-              count++
-            }
-          }
-        }
-      }
-
-      val dailyList = mutableListOf<DailyWeather>()
-      var maxToday = currentTemp + 3
-      var minToday = currentTemp - 4
-      var uvToday = 4.0
-
-      if (daily != null) {
-        val dailyTimes = daily.optJSONArray("time")
-        val maxTemps = daily.optJSONArray("temperature_2m_max")
-        val minTemps = daily.optJSONArray("temperature_2m_min")
-        val dailyCodes = daily.optJSONArray("weather_code")
-        val uvMax = daily.optJSONArray("uv_index_max")
-
-        val sdfParser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val sdfDayName = SimpleDateFormat("EEE", Locale("es", "ES"))
-        val sdfDayNum = SimpleDateFormat("dd MMM", Locale("es", "ES"))
-
-        if (dailyTimes != null && maxTemps != null && minTemps != null) {
-          for (i in 0 until minOf(dailyTimes.length(), 7)) {
-            val dStr = dailyTimes.optString(i, "")
-            val parsedDate = try { sdfParser.parse(dStr) } catch (e: Exception) { Date() } ?: Date()
-            val dayLabel = if (i == 0) "Hoy" else sdfDayName.format(parsedDate).replaceFirstChar { it.uppercase() }
-            val dateLabel = sdfDayNum.format(parsedDate)
-            val maxT = (maxTemps.optDouble(i, 20.0) * 10).roundToInt() / 10.0
-            val minT = (minTemps.optDouble(i, 10.0) * 10).roundToInt() / 10.0
-            val dCode = dailyCodes?.optInt(i, 0) ?: 0
-
-            if (i == 0) {
-              maxToday = maxT
-              minToday = minT
-              uvToday = uvMax?.optDouble(0, 4.0) ?: 4.0
-            }
-
-            dailyList.add(
-              DailyWeather(
-                dayLabel = dayLabel,
-                dateLabel = dateLabel,
-                minTemp = minT,
-                maxTemp = maxT,
-                weatherCode = dCode,
-                condition = getWeatherDescription(dCode)
-              )
-            )
-          }
-        }
-      }
-
-      WeatherData(
-        cityName = cityName,
-        country = country,
-        currentTemp = (currentTemp * 10).roundToInt() / 10.0,
-        tempUnit = if (isFahrenheit) "°F" else "°C",
-        conditionDescription = getWeatherDescription(weatherCode),
-        weatherCode = weatherCode,
-        highTemp = maxToday,
-        lowTemp = minToday,
-        humidity = humidity,
-        windSpeedKmH = (windSpeed * 10).roundToInt() / 10.0,
-        uvIndex = uvToday,
-        hourlyForecast = if (hourlyList.isNotEmpty()) hourlyList else fallbackWeather.hourlyForecast,
-        dailyForecast = if (dailyList.isNotEmpty()) dailyList else fallbackWeather.dailyForecast
-      )
+      fetchForecast(lat, lon, cityName, country, isFahrenheit)
     } catch (e: Exception) {
       fallbackWeather.copy(cityName = queryLocation)
     }
+  }
+
+  /**
+   * Detecta dónde está la TV a partir de su conexión a internet (por IP) y trae el clima de ahí.
+   * Devuelve null si no se pudo detectar la ubicación o no hay internet.
+   */
+  suspend fun fetchWeatherAutomatic(isFahrenheit: Boolean = false): WeatherData? = withContext(Dispatchers.IO) {
+    val location = detectLocationByIp() ?: return@withContext null
+    try {
+      fetchForecast(location.latitude, location.longitude, location.city, location.country, isFahrenheit)
+    } catch (e: Exception) {
+      null
+    }
+  }
+
+  private class DetectedLocation(
+    val latitude: Double,
+    val longitude: Double,
+    val city: String,
+    val country: String
+  )
+
+  private fun detectLocationByIp(): DetectedLocation? {
+    // Servicio 1: ipwho.is (HTTPS, sin clave)
+    try {
+      val request = Request.Builder()
+        .url("https://ipwho.is/?lang=es&fields=success,city,country,latitude,longitude")
+        .build()
+      val body = client.newCall(request).execute().use { it.body?.string() }
+      if (body != null) {
+        val json = JSONObject(body)
+        if (json.optBoolean("success", false) && json.has("latitude") && json.has("longitude")) {
+          return DetectedLocation(
+            latitude = json.getDouble("latitude"),
+            longitude = json.getDouble("longitude"),
+            city = json.optString("city", "").ifBlank { "Mi ubicación" },
+            country = json.optString("country", "")
+          )
+        }
+      }
+    } catch (e: Exception) {
+      // probar el siguiente servicio
+    }
+
+    // Servicio 2 (respaldo): ipapi.co
+    try {
+      val request = Request.Builder().url("https://ipapi.co/json/").build()
+      val body = client.newCall(request).execute().use { it.body?.string() }
+      if (body != null) {
+        val json = JSONObject(body)
+        if (!json.isNull("latitude") && !json.isNull("longitude") && json.has("latitude")) {
+          return DetectedLocation(
+            latitude = json.getDouble("latitude"),
+            longitude = json.getDouble("longitude"),
+            city = json.optString("city", "").ifBlank { "Mi ubicación" },
+            country = json.optString("country_name", "")
+          )
+        }
+      }
+    } catch (e: Exception) {
+      // sin ubicación
+    }
+    return null
+  }
+
+  private fun fetchForecast(
+    lat: Double,
+    lon: Double,
+    cityName: String,
+    country: String,
+    isFahrenheit: Boolean
+  ): WeatherData {
+    // 2. Fetch Forecast from Open-Meteo
+    val unitParam = if (isFahrenheit) "&temperature_unit=fahrenheit" else ""
+    val weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto$unitParam"
+
+    val weatherReq = Request.Builder().url(weatherUrl).build()
+    val weatherBody = client.newCall(weatherReq).execute().use { it.body?.string() }
+      ?: error("Respuesta vacía del clima")
+
+    val weatherJson = JSONObject(weatherBody)
+    val current = weatherJson.optJSONObject("current") ?: error("Sin datos actuales")
+    val hourly = weatherJson.optJSONObject("hourly")
+    val daily = weatherJson.optJSONObject("daily")
+
+    val currentTemp = current.optDouble("temperature_2m", 20.0)
+    val weatherCode = current.optInt("weather_code", 0)
+    val humidity = current.optInt("relative_humidity_2m", 50)
+    val windSpeed = current.optDouble("wind_speed_10m", 10.0)
+
+    val hourlyList = mutableListOf<HourlyWeather>()
+    if (hourly != null) {
+      val times = hourly.optJSONArray("time")
+      val temps = hourly.optJSONArray("temperature_2m")
+      val codes = hourly.optJSONArray("weather_code")
+
+      val nowCal = Calendar.getInstance()
+      val currentHour = nowCal.get(Calendar.HOUR_OF_DAY)
+
+      if (times != null && temps != null && codes != null) {
+        // Grab up to next 12 hours starting near current hour
+        var count = 0
+        for (i in 0 until times.length()) {
+          val tStr = times.optString(i, "")
+          val hourPart = if (tStr.contains("T")) tStr.substringAfter("T") else tStr
+          val hVal = hourPart.take(2).toIntOrNull() ?: 0
+
+          if (hVal >= currentHour && count < 8) {
+            val isNow = count == 0
+            val timeLabel = if (isNow) "Ahora" else hourPart
+            val tempVal = temps.optDouble(i, currentTemp)
+            val codeVal = codes.optInt(i, weatherCode)
+            hourlyList.add(HourlyWeather(timeLabel, (tempVal * 10).roundToInt() / 10.0, codeVal, isNow))
+            count++
+          }
+        }
+      }
+    }
+
+    val dailyList = mutableListOf<DailyWeather>()
+    var maxToday = currentTemp + 3
+    var minToday = currentTemp - 4
+    var uvToday = 4.0
+
+    if (daily != null) {
+      val dailyTimes = daily.optJSONArray("time")
+      val maxTemps = daily.optJSONArray("temperature_2m_max")
+      val minTemps = daily.optJSONArray("temperature_2m_min")
+      val dailyCodes = daily.optJSONArray("weather_code")
+      val uvMax = daily.optJSONArray("uv_index_max")
+
+      val sdfParser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+      val sdfDayName = SimpleDateFormat("EEE", Locale("es", "ES"))
+      val sdfDayNum = SimpleDateFormat("dd MMM", Locale("es", "ES"))
+
+      if (dailyTimes != null && maxTemps != null && minTemps != null) {
+        for (i in 0 until minOf(dailyTimes.length(), 7)) {
+          val dStr = dailyTimes.optString(i, "")
+          val parsedDate = try { sdfParser.parse(dStr) } catch (e: Exception) { Date() } ?: Date()
+          val dayLabel = if (i == 0) "Hoy" else sdfDayName.format(parsedDate).replaceFirstChar { it.uppercase() }
+          val dateLabel = sdfDayNum.format(parsedDate)
+          val maxT = (maxTemps.optDouble(i, 20.0) * 10).roundToInt() / 10.0
+          val minT = (minTemps.optDouble(i, 10.0) * 10).roundToInt() / 10.0
+          val dCode = dailyCodes?.optInt(i, 0) ?: 0
+
+          if (i == 0) {
+            maxToday = maxT
+            minToday = minT
+            uvToday = uvMax?.optDouble(0, 4.0) ?: 4.0
+          }
+
+          dailyList.add(
+            DailyWeather(
+              dayLabel = dayLabel,
+              dateLabel = dateLabel,
+              minTemp = minT,
+              maxTemp = maxT,
+              weatherCode = dCode,
+              condition = getWeatherDescription(dCode)
+            )
+          )
+        }
+      }
+    }
+
+    return WeatherData(
+      cityName = cityName,
+      country = country,
+      currentTemp = (currentTemp * 10).roundToInt() / 10.0,
+      tempUnit = if (isFahrenheit) "°F" else "°C",
+      conditionDescription = getWeatherDescription(weatherCode),
+      weatherCode = weatherCode,
+      highTemp = maxToday,
+      lowTemp = minToday,
+      humidity = humidity,
+      windSpeedKmH = (windSpeed * 10).roundToInt() / 10.0,
+      uvIndex = uvToday,
+      hourlyForecast = if (hourlyList.isNotEmpty()) hourlyList else fallbackWeather.hourlyForecast,
+      dailyForecast = if (dailyList.isNotEmpty()) dailyList else fallbackWeather.dailyForecast
+    )
   }
 
   fun getWeatherDescription(code: Int): String {
