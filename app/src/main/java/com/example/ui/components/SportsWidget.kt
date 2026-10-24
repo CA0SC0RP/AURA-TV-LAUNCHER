@@ -134,9 +134,9 @@ fun SportsWidget(
 
   if (showDetails) {
     BackHandler { showDetails = false }
-    Dialog(onDismissRequest = { showDetails = false }) {
+    Dialog(onDismissRequest = { showDetails = false }, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
       Surface(
-        modifier = Modifier.fillMaxWidth(0.94f).height(500.dp),
+        modifier = Modifier.fillMaxWidth(0.94f).height(500.dp).focusGroup(),
         shape = RoundedCornerShape(18.dp),
         color = TvSurfaceElevated,
         border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen.copy(alpha = 0.65f))
