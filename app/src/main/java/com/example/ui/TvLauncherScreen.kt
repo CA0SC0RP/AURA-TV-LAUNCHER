@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -35,6 +36,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +60,7 @@ import com.example.ui.components.TvCard
 import com.example.ui.components.TvShowsWidget
 import com.example.ui.components.WeatherWidget
 import com.example.ui.components.WeatherSetupWidget
+import com.example.ui.components.WallpaperPickerModal
 import com.example.ui.theme.NeonBlue
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.TvTextSecondary
@@ -71,7 +76,7 @@ fun TvLauncherScreen(
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val context = LocalContext.current
-
+  var showWallpaperPicker by remember { mutableStateOf(false) }
 
   Box(modifier = modifier.fillMaxSize()) {
     // 1. 4K Wallpaper Background
@@ -111,7 +116,8 @@ fun TvLauncherScreen(
                 Toast.makeText(context, "Ajustes de TV", Toast.LENGTH_SHORT).show()
               }
             },
-            onRefresh = { viewModel.loadAllData() }
+            onRefresh = { viewModel.loadAllData() },
+            onOpenWallpaperPicker = { showWallpaperPicker = true }
           )
 
           // Line 2: Compact TV series horizontal strip linked with TVMaze
@@ -318,12 +324,28 @@ fun TvLauncherScreen(
     }
 
   }
+
+    if (showWallpaperPicker) {
+      WallpaperPickerModal(
+        currentWallpaperId = uiState.currentWallpaperId,
+        onDismiss = { showWallpaperPicker = false },
+        onSelectWallpaper = { wallpaper ->
+          viewModel.setWallpaper(wallpaper.id)
+          showWallpaperPicker = false
+        },
+        onSetCustomUrl = { url ->
+          viewModel.setCustomWallpaper(url)
+          showWallpaperPicker = false
+        }
+      )
+    }
 }
 
 @Composable
 fun TopTvStatusBar(
   onOpenSettings: () -> Unit,
-  onRefresh: () -> Unit
+  onRefresh: () -> Unit,
+  onOpenWallpaperPicker: () -> Unit
 ) {
   Row(
     modifier = Modifier
@@ -377,6 +399,19 @@ fun TopTvStatusBar(
       ) {
         Box(modifier = Modifier.padding(6.dp)) {
           Icon(Icons.Default.Refresh, contentDescription = "Actualizar", tint = Color.White, modifier = Modifier.size(14.dp))
+        }
+      }
+
+      TvCard(
+        onClick = onOpenWallpaperPicker,
+        shape = CircleShape,
+        backgroundColor = Color.White.copy(alpha = 0.1f),
+        focusedBorderColor = NeonCyan,
+        focusedScale = 1.15f,
+        elevation = 2.dp
+      ) {
+        Box(modifier = Modifier.padding(6.dp)) {
+          Icon(Icons.Default.Wallpaper, contentDescription = "Fondo de pantalla", tint = Color.White, modifier = Modifier.size(14.dp))
         }
       }
 
