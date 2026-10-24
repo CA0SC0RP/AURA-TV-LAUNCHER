@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import com.example.data.model.MoonEvent
 import com.example.data.model.MoonPhaseInfo
+import com.example.data.model.MoonPhasePoint
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -70,6 +71,12 @@ object MoonCalculator {
       .map { (target, name) -> Triple(findPhaseTime(now, target), name, target) }
       .sortedBy { it.first }
 
+    // Las 8 formas del ciclo (nueva, creciente, cuarto, gibosa, llena...) con el día en que llegan
+    val strip = listOf(0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875)
+      .map { target -> findPhaseTime(now, target) to target }
+      .sortedBy { it.first }
+      .map { MoonPhasePoint(it.second, shortDate(it.first, "d MMM")) }
+
     val nextFull = upcoming.first { it.third == 0.5 }.first
     val nextNew = upcoming.first { it.third == 0.0 }.first
 
@@ -85,7 +92,8 @@ object MoonCalculator {
       moonset = formatClock(set),
       phase = phase,
       distanceKm = coords.dist.roundToInt(),
-      upcomingPhases = upcoming.map { MoonEvent(it.second, formatDayAndTime(it.first)) }
+      upcomingPhases = upcoming.map { MoonEvent(it.second, formatDayAndTime(it.first)) },
+      phaseStrip = strip
     )
   }
 

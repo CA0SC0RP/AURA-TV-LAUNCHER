@@ -289,8 +289,8 @@ fun MoonDetailsDialog(moonInfo: MoonPhaseInfo, onDismiss: () -> Unit) {
   TvModalOverlay(onDismiss = onDismiss) {
     Surface(
       modifier = Modifier
-        .width(660.dp)
-        .height(350.dp),
+        .width(680.dp)
+        .height(400.dp),
       shape = RoundedCornerShape(18.dp),
       color = TvSurfaceElevated,
       border = androidx.compose.foundation.BorderStroke(1.5.dp, NeonAmber)
@@ -324,7 +324,7 @@ fun MoonDetailsDialog(moonInfo: MoonPhaseInfo, onDismiss: () -> Unit) {
           }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Row(
           modifier = Modifier
@@ -334,16 +334,16 @@ fun MoonDetailsDialog(moonInfo: MoonPhaseInfo, onDismiss: () -> Unit) {
         ) {
           // Izquierda: la luna grande y su fase
           Column(
-            modifier = Modifier.width(170.dp),
+            modifier = Modifier.width(150.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
           ) {
-            MoonDisc(phase = moonInfo.phase, modifier = Modifier.size(130.dp))
-            Spacer(modifier = Modifier.height(6.dp))
+            MoonDisc(phase = moonInfo.phase, modifier = Modifier.size(110.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
               text = moonInfo.phaseName,
               color = Color.White,
-              fontSize = 17.sp,
+              fontSize = 16.sp,
               fontWeight = FontWeight.Bold,
               maxLines = 1
             )
@@ -356,32 +356,59 @@ fun MoonDetailsDialog(moonInfo: MoonPhaseInfo, onDismiss: () -> Unit) {
             )
           }
 
-          // Centro: datos de hoy
+          // Datos de hoy, en dos columnas cortas
           Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.Center
           ) {
             MoonSection(title = "Hoy") {
-              MoonDataRow("Iluminación", "${moonInfo.illuminationPercent}%")
-              MoonDataRow("Edad", "día ${moonInfo.ageDays} de 29.5")
+              MoonDataRow("Luz", "${moonInfo.illuminationPercent}%")
+              MoonDataRow("Día del ciclo", "${moonInfo.ageDays} de 29.5")
+              MoonDataRow("Signo", moonInfo.constellation, NeonPurple)
+            }
+          }
+          Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+          ) {
+            MoonSection(title = "En el cielo") {
               MoonDataRow("Sale", moonInfo.moonrise, NeonAmber)
               MoonDataRow("Se oculta", moonInfo.moonset, NeonAmber)
-              MoonDataRow("Signo lunar", moonInfo.constellation, NeonPurple)
               MoonDataRow("Distancia", String.format(Locale.US, "%,d km", moonInfo.distanceKm))
             }
           }
+        }
 
-          // Derecha: próximas fases (cuándo crece, cuándo mengua)
-          Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // El ciclo completo: cómo va cambiando la luna y qué día llega a cada forma
+        Column(
+          modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.Black.copy(alpha = 0.35f))
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+        ) {
+          Text(text = "Cómo cambia la luna", color = NeonAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+          Spacer(modifier = Modifier.height(6.dp))
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
           ) {
-            MoonSection(title = "Próximas fases") {
-              moonInfo.upcomingPhases.forEach { event ->
-                Column {
-                  Text(text = event.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                  Text(text = event.dateLabel, color = TvTextSecondary, fontSize = 12.sp, maxLines = 1)
-                }
+            moonInfo.phaseStrip.forEach { point ->
+              Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+              ) {
+                MoonDisc(phase = point.phase, modifier = Modifier.size(46.dp))
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                  text = point.dateLabel,
+                  color = Color.White,
+                  fontSize = 12.sp,
+                  fontWeight = FontWeight.Medium,
+                  maxLines = 1
+                )
               }
             }
           }

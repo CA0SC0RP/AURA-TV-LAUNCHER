@@ -40,6 +40,12 @@ data class MoonEvent(
   val dateLabel: String
 )
 
+/** Una luna chiquita del ciclo: cómo se ve (0 = nueva, 0.5 = llena) y qué día llega a esa forma. */
+data class MoonPhasePoint(
+  val phase: Double,
+  val dateLabel: String
+)
+
 data class MoonPhaseInfo(
   val phaseName: String,
   val illuminationPercent: Int,
@@ -52,5 +58,6 @@ data class MoonPhaseInfo(
   val moonset: String,
   val phase: Double = 0.0, // 0 = nueva, 0.5 = llena
   val distanceKm: Int = 384_400,
-  val upcomingPhases: List<MoonEvent> = emptyList()
+  val upcomingPhases: List<MoonEvent> = emptyList(),
+  val phaseStrip: List<MoonPhasePoint> = emptyList() // las 8 formas del ciclo, en orden de fecha
 )

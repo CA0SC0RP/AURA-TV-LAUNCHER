@@ -32,6 +32,7 @@ class ExampleUnitTest {
 
     // Siempre hay 4 próximas fases, en orden de fecha
     assertEquals(4, fullMoon.upcomingPhases.size)
+    assertEquals(8, fullMoon.phaseStrip.size)
   }
 
   @Test
