@@ -191,6 +191,17 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     refreshWeather(_uiState.value.weatherLocation, newUnit)
   }
 
+  fun setWallpaper(wallpaperId: String) {
+    _uiState.update { it.copy(currentWallpaperId = wallpaperId, customWallpaperUrl = null) }
+  }
+
+  fun setCustomWallpaper(url: String) {
+    val cleanUrl = url.trim()
+    if (cleanUrl.isNotEmpty()) {
+      _uiState.update { it.copy(currentWallpaperId = "custom", customWallpaperUrl = cleanUrl) }
+    }
+  }
+
   fun addSeries(series: TvSeries) {
     val current = _uiState.value.seriesList.toMutableList()
     if (current.none { it.id == series.id }) {
