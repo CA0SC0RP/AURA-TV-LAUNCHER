@@ -370,6 +370,7 @@ fun TvSeriesCalendarDialog(
                 .clip(RoundedCornerShape(6.dp))
                 .background(if (isSelected) NeonCyan.copy(alpha = 0.25f) else Color.Transparent)
                 .clickable { selectedDay = day }
+                .focusable()
                 .padding(vertical = 5.dp),
               contentAlignment = Alignment.Center
             ) {
@@ -618,6 +619,7 @@ fun AddSeriesDialog(
                       isSearching = false
                     }
                   }
+                  .focusable()
                   .padding(horizontal = 6.dp, vertical = 2.dp)
               ) {
                 Text(text = pick, color = NeonBlue, fontSize = 9.sp, fontWeight = FontWeight.Medium)
@@ -869,14 +871,6 @@ fun SeriesDetailDialog(
               Text("Eliminar Serie de mi lista", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
 
-            Button(
-              onClick = onDismiss,
-              colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.12f)),
-              modifier = Modifier.height(36.dp),
-              shape = RoundedCornerShape(8.dp)
-            ) {
-              Text("Cerrar", color = Color.White, fontSize = 11.sp)
-            }
           }
         }
       }
