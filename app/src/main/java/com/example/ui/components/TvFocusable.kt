@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.focusGroup
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -53,6 +55,7 @@ fun TvModalOverlay(
     modifier = Modifier
       .fillMaxSize()
       .background(Color.Black.copy(alpha = 0.85f))
+      .focusProperties { canFocus = false }
       .clickable(
         interactionSource = remember { MutableInteractionSource() },
         indication = null,
@@ -61,7 +64,10 @@ fun TvModalOverlay(
     contentAlignment = Alignment.Center
   ) {
     Box(
-      modifier = modifier.clickable(
+      modifier = modifier
+        .focusGroup()
+        .focusProperties { canFocus = false }
+        .clickable(
         interactionSource = remember { MutableInteractionSource() },
         indication = null,
         onClick = { /* consume clicks inside dialog */ }
