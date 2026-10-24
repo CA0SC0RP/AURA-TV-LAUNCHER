@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusGroup
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,7 +70,7 @@ fun SportsWidget(
     else favoriteFiltered.filter { it.sport.equals(selectedFilter, true) }
 
   Surface(
-    modifier = modifier.clickable { showDetails = true },
+    modifier = modifier.clickable { showDetails = true }.focusable(),
     shape = RoundedCornerShape(14.dp),
     color = TvSurface.copy(alpha = 0.84f),
     border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.10f))
@@ -97,6 +98,7 @@ fun SportsWidget(
             modifier = Modifier.clip(RoundedCornerShape(5.dp))
               .background(if (selectedFilter.equals(sport, true)) NeonGreen.copy(alpha = 0.24f) else Color.Black.copy(alpha = 0.25f))
               .clickable { onFilterChange(if (selectedFilter.equals(sport, true)) "Todos" else sport) }
+              .focusable()
               .padding(horizontal = 5.dp, vertical = 4.dp)
           ) {
             Text(sport, color = if (selectedFilter.equals(sport, true)) NeonGreen else TvTextSecondary, fontSize = 8.sp, maxLines = 1)
@@ -165,6 +167,7 @@ fun SportsWidget(
                 modifier = Modifier.clip(RoundedCornerShape(7.dp))
                   .background(if (selectedFilter.equals(sport, true)) NeonGreen.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.30f))
                   .clickable { onFilterChange(sport) }
+                  .focusable()
                   .padding(horizontal = 10.dp, vertical = 7.dp)
               ) {
                 Text(sport, color = if (selectedFilter.equals(sport, true)) NeonGreen else TvTextSecondary, fontSize = 10.sp)
