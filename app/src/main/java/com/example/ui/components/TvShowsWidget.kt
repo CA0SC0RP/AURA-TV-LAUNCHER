@@ -40,6 +40,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -236,8 +239,8 @@ fun CompactTvSeriesCard(
   TvCard(
     onClick = onClick,
     modifier = Modifier
-      .height(64.dp)
-      .width(270.dp),
+      .height(72.dp)
+      .width(290.dp),
     shape = RoundedCornerShape(10.dp),
     backgroundColor = Color.Black.copy(alpha = 0.55f),
     focusedBorderColor = NeonPurple,
@@ -252,7 +255,7 @@ fun CompactTvSeriesCard(
       // Mini Poster
       Box(
         modifier = Modifier
-          .size(42.dp, 56.dp)
+          .size(50.dp, 66.dp)
           .clip(RoundedCornerShape(6.dp))
           .background(Color(0xFF1E293B)),
         contentAlignment = Alignment.Center
@@ -269,9 +272,9 @@ fun CompactTvSeriesCard(
         }
       }
 
-      Spacer(modifier = Modifier.width(8.dp))
+      Spacer(modifier = Modifier.width(10.dp))
 
-      // Series Info with ample horizontal room
+      // Solo el nombre y cuándo sale el próximo episodio
       Column(
         modifier = Modifier.weight(1f),
         verticalArrangement = Arrangement.Center
@@ -279,42 +282,21 @@ fun CompactTvSeriesCard(
         Text(
           text = series.name,
           color = Color.White,
-          fontSize = 14.sp,
+          fontSize = 15.sp,
           fontWeight = FontWeight.Bold,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis
         )
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(3.dp))
 
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-          // Season/Episode pill
-          Box(
-            modifier = Modifier
-              .clip(RoundedCornerShape(4.dp))
-              .background(NeonBlue.copy(alpha = 0.25f))
-              .padding(horizontal = 5.dp, vertical = 1.dp)
-          ) {
-            Text(
-              text = "T${series.currentSeason} E${series.currentEpisode}",
-              color = NeonBlue,
-              fontSize = 12.sp,
-              fontWeight = FontWeight.Bold
-            )
-          }
-
-          // Next air date or status (won't get cut off now)
-          Text(
-            text = series.nextAirDate ?: series.status,
-            color = NeonAmber,
-            fontSize = 12.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-          )
-        }
+        Text(
+          text = series.nextAirDate?.takeIf { it.isNotBlank() } ?: series.status,
+          color = NeonAmber,
+          fontSize = 13.sp,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis
+        )
       }
     }
   }
@@ -746,11 +728,14 @@ fun SeriesDetailDialog(
   onUpdate: (TvSeries) -> Unit,
   onDelete: () -> Unit
 ) {
+  val closeFocus = remember { FocusRequester() }
+  LaunchedEffect(Unit) { runCatching { closeFocus.requestFocus() } }
+
   TvModalOverlay(onDismiss = onDismiss) {
     Surface(
       modifier = Modifier
-        .width(580.dp)
-        .height(320.dp),
+        .width(620.dp)
+        .height(350.dp),
       shape = RoundedCornerShape(18.dp),
       color = TvSurfaceElevated,
       border = androidx.compose.foundation.BorderStroke(1.5.dp, NeonPurple)
@@ -759,7 +744,7 @@ fun SeriesDetailDialog(
         // Poster on left
         Box(
           modifier = Modifier
-            .width(135.dp)
+            .width(150.dp)
             .fillMaxHeight()
         ) {
           if (!series.posterUrl.isNullOrBlank()) {
@@ -799,15 +784,24 @@ fun SeriesDetailDialog(
               Text(
                 text = series.name,
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
               )
 
-              IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TvTextSecondary)
+              // Cierra la ventana; arranca seleccionado para no borrar nada por accidente
+              Box(
+                modifier = Modifier
+                  .size(40.dp)
+                  .clip(CircleShape)
+                  .background(Color.White.copy(alpha = 0.12f))
+                  .focusRequester(closeFocus)
+                  .tvClickable(shape = CircleShape, focusColor = NeonPurple) { onDismiss() },
+                contentAlignment = Alignment.Center
+              ) {
+                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White, modifier = Modifier.size(22.dp))
               }
             }
 
@@ -815,9 +809,9 @@ fun SeriesDetailDialog(
 
             // Network, Status, Rating
             Text(
-              text = "${series.network} • Estado: ${series.status} • ★ ${series.rating}",
+              text = "${series.network} • ${series.status} • ★ ${series.rating}",
               color = NeonAmber,
-              fontSize = 11.sp,
+              fontSize = 13.sp,
               fontWeight = FontWeight.SemiBold
             )
 
@@ -837,15 +831,17 @@ fun SeriesDetailDialog(
                 Text(
                   text = "Temporada ${series.currentSeason} • Episodio ${series.currentEpisode}",
                   color = NeonBlue,
-                  fontSize = 12.sp,
+                  fontSize = 13.sp,
                   fontWeight = FontWeight.Bold
                 )
               }
 
               Text(
-                text = "Días: ${series.airDays.joinToString().ifBlank { "Por confirmar" }} (${series.airTime})",
+                text = "${series.airDays.joinToString().ifBlank { "Por confirmar" }} · ${series.airTime}",
                 color = TvTextSecondary,
-                fontSize = 11.sp
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
               )
             }
 
@@ -853,9 +849,9 @@ fun SeriesDetailDialog(
 
             // Next Air Date / Status
             Text(
-              text = "Próxima emisión: ${series.nextAirDate ?: "Por confirmar"}",
+              text = series.nextAirDate?.takeIf { it.isNotBlank() } ?: "Próximo: por confirmar",
               color = NeonCyan,
-              fontSize = 11.sp,
+              fontSize = 13.sp,
               fontWeight = FontWeight.Bold
             )
 
@@ -865,8 +861,8 @@ fun SeriesDetailDialog(
             Text(
               text = series.summary.ifBlank { "Sin sinopsis disponible." },
               color = TvTextSecondary,
-              fontSize = 10.sp,
-              maxLines = 3,
+              fontSize = 12.sp,
+              maxLines = 5,
               overflow = TextOverflow.Ellipsis
             )
           }
@@ -877,25 +873,31 @@ fun SeriesDetailDialog(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
           ) {
-            // Highly Visible Red Delete Button
-            Button(
-              onClick = onDelete,
-              colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
-              modifier = Modifier.height(36.dp),
-              shape = RoundedCornerShape(8.dp)
+            // Quitar la serie de la lista
+            Row(
+              modifier = Modifier
+                .height(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFFDC2626))
+                .tvClickable(shape = RoundedCornerShape(8.dp), focusColor = Color.White) { onDelete() }
+                .padding(horizontal = 14.dp),
+              verticalAlignment = Alignment.CenterVertically
             ) {
-              Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+              Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
               Spacer(modifier = Modifier.width(6.dp))
-              Text("Eliminar Serie de mi lista", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+              Text("Quitar de mi lista", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
 
-            Button(
-              onClick = onDismiss,
-              colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.12f)),
-              modifier = Modifier.height(36.dp),
-              shape = RoundedCornerShape(8.dp)
+            Box(
+              modifier = Modifier
+                .height(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.12f))
+                .tvClickable(shape = RoundedCornerShape(8.dp), focusColor = NeonPurple) { onDismiss() }
+                .padding(horizontal = 18.dp),
+              contentAlignment = Alignment.Center
             ) {
-              Text("Cerrar", color = Color.White, fontSize = 11.sp)
+              Text("Cerrar", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
           }
         }

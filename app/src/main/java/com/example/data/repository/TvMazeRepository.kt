@@ -8,6 +8,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class TvMazeRepository(private val client: OkHttpClient = OkHttpClient.Builder()
@@ -190,15 +192,7 @@ class TvMazeRepository(private val client: OkHttpClient = OkHttpClient.Builder()
       // Check embedded next episode
       val embedded = show.optJSONObject("_embedded")
       val nextEp = embedded?.optJSONObject("nextepisode")
-      val nextAirDate = if (nextEp != null) {
-        val airdate = nextEp.optString("airdate", "")
-        val airtime = nextEp.optString("airtime", "")
-        val epSeason = nextEp.optInt("season", 1)
-        val epNumber = nextEp.optInt("number", 1)
-        "T$epSeason E$epNumber: $airdate $airtime".trim()
-      } else {
-        if (status.contains("Finalizada", true)) "Serie finalizada" else "Por confirmar"
-      }
+      val nextAirDate = nextEpisodeLabel(nextEp, status)
 
       val seasonsArray = embedded?.optJSONArray("seasons")
       val totalSeasons = seasonsArray?.length() ?: 1
@@ -220,6 +214,42 @@ class TvMazeRepository(private val client: OkHttpClient = OkHttpClient.Builder()
       )
     } catch (e: Exception) {
       fallbackSeries.find { it.id == showId }
+    }
+  }
+
+  /** Fecha del próximo episodio, lista para mostrar ("Próximo: Sáb 25 oct"). Null si no hay internet. */
+  suspend fun fetchNextAirDate(showId: Long): String? = withContext(Dispatchers.IO) {
+    try {
+      val url = "https://api.tvmaze.com/shows/$showId?embed[]=nextepisode"
+      val request = Request.Builder().url(url).build()
+      client.newCall(request).execute().use { response ->
+        if (!response.isSuccessful) return@withContext null
+        val body = response.body?.string() ?: return@withContext null
+        val show = JSONObject(body)
+        val status = translateStatus(show.optString("status", ""))
+        nextEpisodeLabel(show.optJSONObject("_embedded")?.optJSONObject("nextepisode"), status)
+      }
+    } catch (e: Exception) {
+      null
+    }
+  }
+
+  private fun nextEpisodeLabel(nextEp: JSONObject?, status: String): String {
+    if (nextEp != null) {
+      formatAirDate(nextEp.optString("airdate", ""))?.let { return "Próximo: $it" }
+    }
+    return if (status.contains("Finalizada", ignoreCase = true)) "Serie finalizada" else "Próximo: por confirmar"
+  }
+
+  private fun formatAirDate(airdate: String): String? {
+    if (airdate.isBlank()) return null
+    return try {
+      val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(airdate) ?: return null
+      SimpleDateFormat("EEE d MMM", Locale("es", "MX")).format(parsed)
+        .replace(".", "")
+        .replaceFirstChar { it.uppercase() }
+    } catch (e: Exception) {
+      null
     }
   }
 

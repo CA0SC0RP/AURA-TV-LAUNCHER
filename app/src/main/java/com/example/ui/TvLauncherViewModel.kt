@@ -114,6 +114,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       // Fetch live weather and sports in background
       refreshWeather()
       loadSports()
+      refreshSeriesDates()
     }
   }
 
@@ -154,6 +155,27 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
     prefs.setFahrenheit(newUnit)
     _uiState.update { it.copy(isFahrenheit = newUnit) }
     refreshWeather()
+  }
+
+  // Pone al día la fecha del próximo episodio de cada serie guardada (TVMaze, gratis y sin clave)
+  fun refreshSeriesDates() {
+    viewModelScope.launch {
+      val labels = mutableMapOf<Long, String>()
+      for (series in _uiState.value.seriesList) {
+        tvMazeRepo.fetchNextAirDate(series.id)?.let { labels[series.id] = it }
+      }
+      if (labels.isEmpty()) return@launch
+
+      // Se aplica sobre la lista más reciente por si el usuario agregó o quitó series mientras tanto
+      val latest = _uiState.value.seriesList
+      val merged = latest.map { current ->
+        labels[current.id]?.let { current.copy(nextAirDate = it) } ?: current
+      }
+      if (merged != latest) {
+        prefs.saveSeries(merged)
+        _uiState.update { it.copy(seriesList = merged) }
+      }
+    }
   }
 
   fun addSeries(series: TvSeries) {
