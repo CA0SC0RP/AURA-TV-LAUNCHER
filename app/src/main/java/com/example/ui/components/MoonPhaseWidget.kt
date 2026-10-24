@@ -18,12 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.NightlightRound
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,22 +30,90 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.example.data.model.MoonPhaseInfo
 import com.example.ui.theme.NeonAmber
 import com.example.ui.theme.NeonPurple
-import com.example.ui.theme.TvBorderFocused
 import com.example.ui.theme.TvSurface
 import com.example.ui.theme.TvSurfaceElevated
 import com.example.ui.theme.TvTextPrimary
 import com.example.ui.theme.TvTextSecondary
+import java.util.Locale
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+
+/** Frase corta que dice hacia dónde va la luna. */
+private fun moonTrend(info: MoonPhaseInfo): String = when {
+  info.phaseName == "Luna nueva" -> "Cielo oscuro"
+  info.phaseName == "Luna llena" -> "Máximo brillo"
+  info.isWaxing -> "Va creciendo"
+  else -> "Va menguando"
+}
+
+/** Dibuja la luna con la forma real de su fase (la parte iluminada cambia cada noche). */
+@Composable
+fun MoonDisc(phase: Double, modifier: Modifier = Modifier) {
+  Canvas(modifier = modifier) {
+    val r = size.minDimension / 2f * 0.82f
+    val c = Offset(size.width / 2f, size.height / 2f)
+
+    // Resplandor suave
+    drawCircle(
+      brush = Brush.radialGradient(
+        colors = listOf(Color(0x33FDE047), Color.Transparent),
+        center = c,
+        radius = r * 1.5f
+      ),
+      radius = r * 1.5f,
+      center = c
+    )
+
+    // Lado oscuro
+    drawCircle(color = Color(0xFF1E293B), radius = r, center = c)
+
+    // Lado iluminado: media luna a un lado y la elipse del borde de sombra
+    val waxing = phase < 0.5
+    val k = cos(2.0 * PI * phase).toFloat()
+    val disc = Rect(c.x - r, c.y - r, c.x + r, c.y + r)
+    val half = Path().apply {
+      arcTo(disc, if (waxing) -90f else 90f, 180f, true)
+      close()
+    }
+    val ellipse = Path().apply {
+      addOval(Rect(c.x - r * abs(k), c.y - r, c.x + r * abs(k), c.y + r))
+    }
+    val isCrescent = if (waxing) phase < 0.25 else phase > 0.75
+    val lit = Path.combine(
+      if (isCrescent) PathOperation.Difference else PathOperation.Union,
+      half,
+      ellipse
+    )
+    drawPath(
+      path = lit,
+      brush = Brush.radialGradient(
+        colors = listOf(Color(0xFFFEF9C3), Color(0xFFFDE047), Color(0xFFCA8A04)),
+        center = Offset(c.x - r * 0.2f, c.y - r * 0.2f),
+        radius = r * 1.4f
+      )
+    )
+
+    drawCircle(color = Color(0x55FEF08A), radius = r, center = c, style = Stroke(width = 1.5f))
+  }
+}
 
 @Composable
 fun MoonPhaseWidget(
@@ -68,7 +135,7 @@ fun MoonPhaseWidget(
         .padding(10.dp),
       verticalArrangement = Arrangement.SpaceBetween
     ) {
-      // Header
+      // Encabezado
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -86,7 +153,8 @@ fun MoonPhaseWidget(
             text = "Fase Lunar",
             color = TvTextPrimary,
             fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
           )
         }
 
@@ -97,86 +165,23 @@ fun MoonPhaseWidget(
             .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
           Text(
-            text = "${moonInfo.illuminationPercent}% Luz",
+            text = "${moonInfo.illuminationPercent}% luz",
             color = NeonAmber,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
           )
         }
       }
 
-      // Moon graphic and phase name
+      // La luna y su fase
       Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        // Custom Graphical Moon
-        Box(
-          modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(Color(0xFF0F172A)),
-          contentAlignment = Alignment.Center
-        ) {
-          Canvas(modifier = Modifier.size(44.dp)) {
-            val radius = size.minDimension / 2f
-            val center = Offset(size.width / 2f, size.height / 2f)
+        MoonDisc(phase = moonInfo.phase, modifier = Modifier.size(56.dp))
 
-            // Outer subtle lunar aura
-            drawCircle(
-              brush = Brush.radialGradient(
-                colors = listOf(Color(0x44FDE047), Color(0x10FDE047), Color.Transparent),
-                center = center,
-                radius = radius * 1.35f
-              ),
-              radius = radius * 1.25f,
-              center = center
-            )
-
-            // Dark moon base (unlit side)
-            drawCircle(
-              color = Color(0xFF1E293B),
-              radius = radius,
-              center = center
-            )
-
-            // Moon illuminated portion
-            val illumFraction = moonInfo.illuminationPercent / 100f
-            if (illumFraction > 0.05f) {
-              drawCircle(
-                brush = Brush.radialGradient(
-                  colors = listOf(Color(0xFFFEF08A), Color(0xFFFDE047), Color(0xFFCA8A04)),
-                  center = Offset(center.x - radius * 0.2f, center.y - radius * 0.2f),
-                  radius = radius
-                ),
-                radius = radius * (0.4f + (illumFraction * 0.6f)),
-                center = center
-              )
-
-              // Craters details
-              drawCircle(
-                color = Color(0x33CA8A04),
-                radius = radius * 0.16f,
-                center = Offset(center.x - radius * 0.3f, center.y + radius * 0.1f)
-              )
-              drawCircle(
-                color = Color(0x22CA8A04),
-                radius = radius * 0.22f,
-                center = Offset(center.x + radius * 0.25f, center.y - radius * 0.2f)
-              )
-            }
-
-            // Outer ring
-            drawCircle(
-              color = Color(0x44FEF08A),
-              radius = radius,
-              center = center,
-              style = Stroke(width = 1.5f)
-            )
-          }
-        }
-
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
         Column(modifier = Modifier.weight(1f)) {
           Text(
@@ -184,11 +189,12 @@ fun MoonPhaseWidget(
             color = Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
           )
           Text(
-            text = "Día ${moonInfo.ageDays} de 29.5",
-            color = TvTextSecondary,
+            text = moonTrend(moonInfo),
+            color = NeonAmber,
             fontSize = 11.sp,
             maxLines = 1
           )
@@ -196,102 +202,187 @@ fun MoonPhaseWidget(
             text = "Signo: ${moonInfo.constellation}",
             color = NeonPurple,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
             maxLines = 1
           )
         }
       }
 
-      // Astronomical Calendar details
+      // Datos rápidos
       Column(
         modifier = Modifier
           .fillMaxWidth()
           .clip(RoundedCornerShape(8.dp))
           .background(Color.Black.copy(alpha = 0.3f))
-          .padding(horizontal = 8.dp, vertical = 5.dp)
+          .padding(horizontal = 8.dp, vertical = 4.dp)
       ) {
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(text = "Luna llena:", color = TvTextSecondary, fontSize = 11.sp, maxLines = 1)
-          Text(text = moonInfo.nextFullMoonDate, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+          Text(text = "Sale ${moonInfo.moonrise}", color = Color.White, fontSize = 11.sp, maxLines = 1)
+          Text(text = "Se oculta ${moonInfo.moonset}", color = Color.White, fontSize = 11.sp, maxLines = 1)
         }
         Spacer(modifier = Modifier.height(2.dp))
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
-          Text(text = "Luna nueva:", color = TvTextSecondary, fontSize = 11.sp, maxLines = 1)
-          Text(text = moonInfo.nextNewMoonDate, color = NeonAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+          Text(text = "Luna llena", color = TvTextSecondary, fontSize = 11.sp, maxLines = 1)
+          Text(
+            text = moonInfo.nextFullMoonDate,
+            color = NeonAmber,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
+          )
         }
       }
     }
   }
 
-  // Astronomical modal when user presses OK / selects the Moon Widget
   if (showDetailsDialog) {
-    TvModalOverlay(onDismiss = { showDetailsDialog = false }) {
-      Surface(
+    MoonDetailsDialog(moonInfo = moonInfo, onDismiss = { showDetailsDialog = false })
+  }
+}
+
+@Composable
+private fun MoonDataRow(label: String, value: String, valueColor: Color = Color.White) {
+  Row(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.SpaceBetween,
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Text(text = label, color = TvTextSecondary, fontSize = 13.sp, maxLines = 1)
+    Spacer(modifier = Modifier.width(8.dp))
+    Text(
+      text = value,
+      color = valueColor,
+      fontSize = 13.sp,
+      fontWeight = FontWeight.Bold,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis
+    )
+  }
+}
+
+@Composable
+private fun MoonSection(title: String, content: @Composable () -> Unit) {
+  Column(
+    modifier = Modifier
+      .fillMaxWidth()
+      .clip(RoundedCornerShape(10.dp))
+      .background(Color.Black.copy(alpha = 0.35f))
+      .padding(horizontal = 12.dp, vertical = 8.dp),
+    verticalArrangement = Arrangement.spacedBy(5.dp)
+  ) {
+    Text(text = title, color = NeonAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    content()
+  }
+}
+
+@Composable
+fun MoonDetailsDialog(moonInfo: MoonPhaseInfo, onDismiss: () -> Unit) {
+  // La X arranca seleccionada: con el control basta presionar OK para cerrar
+  val closeFocus = remember { FocusRequester() }
+  LaunchedEffect(Unit) { runCatching { closeFocus.requestFocus() } }
+
+  TvModalOverlay(onDismiss = onDismiss) {
+    Surface(
+      modifier = Modifier
+        .width(660.dp)
+        .height(350.dp),
+      shape = RoundedCornerShape(18.dp),
+      color = TvSurfaceElevated,
+      border = androidx.compose.foundation.BorderStroke(1.5.dp, NeonAmber)
+    ) {
+      Column(
         modifier = Modifier
-          .width(380.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = TvSurfaceElevated,
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, NeonAmber)
+          .fillMaxSize()
+          .padding(horizontal = 18.dp, vertical = 12.dp)
       ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Título y cerrar
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.NightlightRound, contentDescription = null, tint = NeonAmber, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "La Luna hoy", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+          }
+          Box(
+            modifier = Modifier
+              .size(40.dp)
+              .clip(CircleShape)
+              .background(Color.White.copy(alpha = 0.12f))
+              .focusRequester(closeFocus)
+              .tvClickable(shape = CircleShape, focusColor = NeonAmber) { onDismiss() },
+            contentAlignment = Alignment.Center
           ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-              Icon(Icons.Default.NightlightRound, contentDescription = null, tint = NeonAmber, modifier = Modifier.size(24.dp))
-              Spacer(modifier = Modifier.width(8.dp))
-              Text(text = "Detalles de la Fase Lunar", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
-            IconButton(onClick = { showDetailsDialog = false }) {
-              Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TvTextSecondary)
+            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White, modifier = Modifier.size(22.dp))
+          }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+          horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+          // Izquierda: la luna grande y su fase
+          Column(
+            modifier = Modifier.width(170.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+          ) {
+            MoonDisc(phase = moonInfo.phase, modifier = Modifier.size(130.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+              text = moonInfo.phaseName,
+              color = Color.White,
+              fontSize = 17.sp,
+              fontWeight = FontWeight.Bold,
+              maxLines = 1
+            )
+            Text(
+              text = moonTrend(moonInfo),
+              color = NeonAmber,
+              fontSize = 13.sp,
+              fontWeight = FontWeight.Medium,
+              maxLines = 1
+            )
+          }
+
+          // Centro: datos de hoy
+          Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+            MoonSection(title = "Hoy") {
+              MoonDataRow("Iluminación", "${moonInfo.illuminationPercent}%")
+              MoonDataRow("Edad", "día ${moonInfo.ageDays} de 29.5")
+              MoonDataRow("Sale", moonInfo.moonrise, NeonAmber)
+              MoonDataRow("Se oculta", moonInfo.moonset, NeonAmber)
+              MoonDataRow("Signo lunar", moonInfo.constellation, NeonPurple)
+              MoonDataRow("Distancia", String.format(Locale.US, "%,d km", moonInfo.distanceKm))
             }
           }
 
-          Spacer(modifier = Modifier.height(12.dp))
-
-          Text(
-            text = "Fase Actual: ${moonInfo.phaseName} (${moonInfo.illuminationPercent}% Iluminación)",
-            color = NeonAmber,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
-          )
-          Spacer(modifier = Modifier.height(4.dp))
-          Text(
-            text = "La luna se encuentra en el día ${moonInfo.ageDays} de su ciclo sinódico de 29.5 días en la constelación de ${moonInfo.constellation}.",
-            color = TvTextSecondary,
-            fontSize = 12.sp
-          )
-
-          Spacer(modifier = Modifier.height(12.dp))
-
+          // Derecha: próximas fases (cuándo crece, cuándo mengua)
           Column(
-            modifier = Modifier
-              .fillMaxWidth()
-              .clip(RoundedCornerShape(10.dp))
-              .background(Color.Black.copy(alpha = 0.35f))
-              .padding(12.dp)
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
           ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-              Text(text = "Próxima Luna Llena:", color = TvTextSecondary, fontSize = 11.sp)
-              Text(text = moonInfo.nextFullMoonDate, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-              Text(text = "Próxima Luna Nueva:", color = TvTextSecondary, fontSize = 11.sp)
-              Text(text = moonInfo.nextNewMoonDate, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-              Text(text = "Distancia media orbital:", color = TvTextSecondary, fontSize = 11.sp)
-              Text(text = "384,400 km", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            MoonSection(title = "Próximas fases") {
+              moonInfo.upcomingPhases.forEach { event ->
+                Column {
+                  Text(text = event.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                  Text(text = event.dateLabel, color = TvTextSecondary, fontSize = 12.sp, maxLines = 1)
+                }
+              }
             }
           }
         }

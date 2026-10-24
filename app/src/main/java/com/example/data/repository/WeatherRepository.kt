@@ -257,7 +257,9 @@ class WeatherRepository(private val client: OkHttpClient = OkHttpClient.Builder(
       windSpeedKmH = (windSpeed * 10).roundToInt() / 10.0,
       uvIndex = uvToday,
       hourlyForecast = if (hourlyList.isNotEmpty()) hourlyList else fallbackWeather.hourlyForecast,
-      dailyForecast = if (dailyList.isNotEmpty()) dailyList else fallbackWeather.dailyForecast
+      dailyForecast = if (dailyList.isNotEmpty()) dailyList else fallbackWeather.dailyForecast,
+      latitude = lat,
+      longitude = lon
     )
   }
 

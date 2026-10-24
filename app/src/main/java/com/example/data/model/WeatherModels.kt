@@ -13,7 +13,10 @@ data class WeatherData(
   val windSpeedKmH: Double,
   val uvIndex: Double,
   val hourlyForecast: List<HourlyWeather>,
-  val dailyForecast: List<DailyWeather>
+  val dailyForecast: List<DailyWeather>,
+  // Ubicación del clima (también se usa para calcular la salida y puesta de la luna)
+  val latitude: Double = 19.4326,
+  val longitude: Double = -99.1332
 )
 
 data class HourlyWeather(
@@ -32,6 +35,11 @@ data class DailyWeather(
   val condition: String
 )
 
+data class MoonEvent(
+  val name: String,
+  val dateLabel: String
+)
+
 data class MoonPhaseInfo(
   val phaseName: String,
   val illuminationPercent: Int,
@@ -39,7 +47,10 @@ data class MoonPhaseInfo(
   val isWaxing: Boolean,
   val nextFullMoonDate: String,
   val nextNewMoonDate: String,
-  val constellation: String,
-  val moonrise: String,
-  val moonset: String
+  val constellation: String, // signo zodiacal en el que está la luna
+  val moonrise: String, // "HH:mm" o "—" si hoy no sale
+  val moonset: String,
+  val phase: Double = 0.0, // 0 = nueva, 0.5 = llena
+  val distanceKm: Int = 384_400,
+  val upcomingPhases: List<MoonEvent> = emptyList()
 )

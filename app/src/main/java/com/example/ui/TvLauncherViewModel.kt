@@ -126,7 +126,7 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       if (prefs.isAutoLocation()) {
         val automatic = weatherRepo.fetchWeatherAutomatic(fahrenheit)
         if (automatic != null) {
-          _uiState.update { it.copy(weatherData = automatic) }
+          applyWeather(automatic)
           return@launch
         }
       }
@@ -134,8 +134,14 @@ class TvLauncherViewModel(application: Application) : AndroidViewModel(applicati
       // 2. Respaldo: la última ciudad elegida a mano (o Ciudad de México)
       val location = _uiState.value.weatherLocation
       val data = weatherRepo.fetchWeather(location, fahrenheit)
-      _uiState.update { it.copy(weatherData = data) }
+      applyWeather(data)
     }
+  }
+
+  // Guarda el clima y recalcula la luna para esa ubicación (la salida y puesta dependen del lugar)
+  private fun applyWeather(data: WeatherData) {
+    val moon = MoonCalculator.calculate(latitude = data.latitude, longitude = data.longitude)
+    _uiState.update { it.copy(weatherData = data, moonPhaseInfo = moon) }
   }
 
   fun updateWeatherLocation(newLocation: String) {

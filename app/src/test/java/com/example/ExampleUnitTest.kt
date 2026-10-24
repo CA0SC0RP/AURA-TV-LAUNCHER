@@ -21,6 +21,20 @@ class ExampleUnitTest {
   }
 
   @Test
+  fun testMoonKnownPhases() {
+    // Luna nueva del 11 de enero de 2024 (11:57 UTC): casi nada de luz
+    val newMoon = MoonCalculator.calculate(Date(1704974220000L))
+    assertTrue("New moon should be almost dark", newMoon.illuminationPercent <= 3)
+
+    // Luna llena del 25 de enero de 2024 (17:54 UTC): casi toda iluminada
+    val fullMoon = MoonCalculator.calculate(Date(1706205240000L))
+    assertTrue("Full moon should be almost fully lit", fullMoon.illuminationPercent >= 97)
+
+    // Siempre hay 4 próximas fases, en orden de fecha
+    assertEquals(4, fullMoon.upcomingPhases.size)
+  }
+
+  @Test
   fun testSportsRepositoryTeamsAndSports() {
     assertEquals(listOf("NBA", "Tenis"), SportsRepository.featuredSports)
     assertEquals(30, SportsRepository.nbaTeams.size)
